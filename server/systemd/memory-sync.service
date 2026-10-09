@@ -1,0 +1,7 @@
+[Unit]
+Description=tidy-one: sync the memory repo with GitHub
+
+[Service]
+Type=oneshot
+User=memory
+ExecStart=/opt/tidy-one/server/bin/memory-sync.sh

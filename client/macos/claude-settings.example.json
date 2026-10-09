@@ -1,0 +1,16 @@
+{
+  "autoMemoryDirectory": "~/claude-memory",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node ~/claude-memory/.sync/sync.mjs pull", "timeout": 20 },
+          { "type": "command", "command": "sh ~/code/tidy-one/client/macos/mirror-aside.sh", "async": true, "timeout": 30 }
+        ]
+      }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "node ~/claude-memory/.sync/sync.mjs push", "async": true, "timeout": 60 } ] }
+    ]
+  }
+}

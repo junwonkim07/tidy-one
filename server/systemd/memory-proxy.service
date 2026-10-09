@@ -1,0 +1,17 @@
+[Unit]
+Description=tidy-one: MCP auth proxy (OAuth login + auto TLS) in front of Basic Memory
+After=basic-memory.service
+Requires=basic-memory.service
+# Only runs once the owner has enabled the public connector (see server/enable-connector.sh).
+ConditionPathExists=/etc/tidy-one/proxy.env
+
+[Service]
+User=memory
+EnvironmentFile=/etc/tidy-one/proxy.env
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+ExecStart=/usr/local/bin/mcp-auth-proxy --external-url ${EXTERNAL_URL} --tls-accept-tos --data-path /home/memory/auth-proxy-data --password-hash ${PW_HASH} -- http://127.0.0.1:8000/mcp
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

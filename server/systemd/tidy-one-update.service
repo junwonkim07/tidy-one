@@ -1,0 +1,7 @@
+[Unit]
+Description=tidy-one: pull the latest commit from GitHub and redeploy if it changed
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/tidy-one/server/update.sh

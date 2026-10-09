@@ -1,0 +1,14 @@
+[Unit]
+Description=tidy-one: Basic Memory MCP (streamable-http, localhost only)
+After=network-online.target
+
+[Service]
+User=memory
+WorkingDirectory=/home/memory
+Environment=PATH=/home/memory/.local/bin:/usr/bin:/bin
+ExecStart=/home/memory/.local/bin/bm mcp --transport streamable-http --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
