@@ -1,0 +1,124 @@
+{
+  "meta": {
+    "lang": "zh-Hans",
+    "locale": "zh_CN",
+    "title": "tidy-one — 所有 AI 智能体共用的一份私有记忆",
+    "description": "在你自己的设备上，把文档、照片、视频和云端工作资料收进同一个私有索引。原文件留在设备上，所有 AI 智能体都能通过 MCP 检索。将于 2026 年推出。",
+    "og_title": "tidy-one — 散落的记忆，归于一处",
+    "og_description": "供你所有的 AI 智能体共用的私有记忆索引。开源、自托管、韩语优先的检索。即将推出。",
+    "og_image_alt": "散落的鼠尾草绿像素，逐渐排列成整齐的网格"
+  },
+  "nav": {
+    "features": "功能",
+    "how": "工作原理",
+    "privacy": "隐私",
+    "status": "路线图",
+    "github": "GitHub",
+    "language": "语言",
+    "lang_ko": "한국어",
+    "lang_en": "English",
+    "lang_zh": "简体中文",
+    "menu": "菜单",
+    "skip": "跳到正文"
+  },
+  "hero": {
+    "eyebrow": "即将推出 · 2026",
+    "headline_1": "散落的记忆，",
+    "headline_2": "归于一处。",
+    "statement": "你所有的 AI 智能体，|共用一个|私有记忆索引",
+    "sub": "在你自己的|设备上，|把文档、|照片、|视频和|云端|工作资料|编入|同一个索引。|原文件|留在|原处，|所有智能体|都通过 MCP |来检索。",
+    "cta_primary": "发布时通知我",
+    "cta_primary_hint": "在 GitHub 上依次选择 Watch → Custom → Releases，首个版本发布时就会收到通知。",
+    "cta_secondary": "在 GitHub 上查看",
+    "meta_line": "开源 · MIT · 自托管",
+    "scroll_hint": "向下滚动，像素会慢慢归位"
+  },
+  "problem": {
+    "label": "散落各处",
+    "heading": "记忆都在，||只是散落在|太多地方。",
+    "p1": "会议录音在 Plaud，方案在 Notion，合同在笔记本电脑的某个文件夹里，照片在手机里。真到要用的时候，还得先回想它放在哪儿。",
+    "p2": "AI 智能体也一样。Claude Code 按文件夹各记各的，手机 App 自己记一份，浏览器智能体又记一份。它们互不相通，同样的背景，你只好一遍遍重新交代。"
+  },
+  "features": {
+    "label": "功能",
+    "heading": "任何设备，|任何格式，|任何智能体。",
+    "devices": {
+      "title": "所有设备",
+      "body": "轻量的索引程序在 Mac 和 Windows 上安静地整理，iPhone 上则可以检索同一份索引。"
+    },
+    "formats": {
+      "title": "各种格式",
+      "body": "PDF、Office、HWP 文档，照片和视频，以及 Notion、Google Drive、Gmail、Plaud、Slack 里的工作内容，都收进同一个索引。"
+    },
+    "search": {
+      "title": "韩语优先的|语义检索",
+      "body": "KURE-v1 嵌入模型结合 Kiwi 韩语形态分析，按语义而非字面查找；图像向量还能找到照片里的场景。"
+    },
+    "agents": {
+      "title": "通过 MCP |接入所有智能体",
+      "body": "Claude Code、Codex、claude.ai 网页版与 iOS 版，以及浏览器智能体，都通过同一个 MCP 端点检索。"
+    }
+  },
+  "how": {
+    "label": "工作原理",
+    "heading": "三步完成，|原文件原地不动。",
+    "step1": {
+      "title": "在你的设备上|建立索引",
+      "body": "就地读取文件、提取文本，再转换成向量。"
+    },
+    "step2": {
+      "title": "只有摘录和向量|离开设备",
+      "body": "简短的摘录和向量会发到你自己运行的一台小服务器（每月 24 美元的 VPS）；原文件始终留在设备上。"
+    },
+    "step3": {
+      "title": "任意智能体|都能检索",
+      "body": "无论是在桌前用 Claude Code，还是在手机上用 claude.ai 提问，答案都来自同一份索引。"
+    }
+  },
+  "privacy": {
+    "label": "隐私",
+    "heading": "原文件|从不离开|你的设备。",
+    "originals": {
+      "title": "原文件留在设备上",
+      "body": "服务器上只保存检索所需的简短摘录和向量。"
+    },
+    "secrets": {
+      "title": "机密信息不外传",
+      "body": "含有密码、API 密钥或私钥的文件，连摘录都不会离开设备。"
+    },
+    "open": {
+      "title": "自托管，开源",
+      "body": "服务器由你自己运行，代码以 MIT 许可证开源。什么数据去了哪里，你可以亲自读代码确认。"
+    }
+  },
+  "works_with": {
+    "label": "适用于",
+    "items": ["Claude Code", "Codex", "claude.ai", "Claude iOS", "Aside"],
+    "note": "以及其他支持 MCP 的客户端。",
+    "disclaimer": "tidy-one 是独立的开源项目，与上述服务均无关联。"
+  },
+  "status": {
+    "label": "路线图",
+    "heading": "目前|走到了这一步。",
+    "done_label": "已完成",
+    "next_label": "下一步",
+    "done": ["跨设备共享记忆", "语义检索", "推送即部署的服务器"],
+    "next": ["文档与照片索引", "视频索引", "接入云端数据源", "Windows 索引程序"],
+    "note": "首个版本将于 2026 年发布，顺序可能会调整。"
+  },
+  "footer": {
+    "tagline": "一份整洁、|只属于你的记忆，|供所有 AI 智能体共用。",
+    "copyright": "© 2026 Junwon Kim",
+    "license": "MIT 许可证",
+    "made_in": "首尔出品",
+    "github": "GitHub",
+    "back_to_top": "回到顶部"
+  },
+  "game": {
+    "hint": "试着把像素理整齐",
+    "done": "整整齐齐了。",
+    "reset": "再打散一次",
+    "aria": "小游戏：点击散落的像素，让它们回到网格中的原位",
+    "piece": "把第 {n} 个像素放回原位"
+  }
+}

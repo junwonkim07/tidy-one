@@ -1,0 +1,1008 @@
+/* tidy-one — Sage Minimal
+   mist #CAD2C5 · sage #84A98C · deep #52796F · pine #354F52 · slate #2F3E46
+   Text is always slate or pine on light; mist and sage are for pixels, fills and lines. */
+
+:root {
+  --mist: #CAD2C5;
+  --sage: #84A98C;
+  --deep: #52796F;
+  --pine: #354F52;
+  --slate: #2F3E46;
+  --paper: #F8F9F7;      /* mist at ~14% on white */
+  --paper-2: #EEF1EC;    /* mist at ~30% on white */
+  --mist-strong: #BCC6B6;
+  --ink: var(--slate);
+  --ink-soft: var(--pine);
+  --label: var(--deep);  /* 4.6:1 on paper; only ever used on paper */
+  --line: var(--mist);
+
+  --gutter: clamp(16px, 4.2vw, 64px);
+  --maxw: 1360px;
+  --step: 3px;
+
+  --latin: "Inter Tight", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-display: var(--latin);
+  --font-text: var(--latin);
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --lh-text: 1.62;
+  --lh-head: 1.06;
+  --lh-h1: 0.96;
+  --track-head: -0.015em;  /* Inter Tight is already a condensed cut; keep display type airy */
+  --track-h1: -0.022em;
+  --track-label: 0.18em;
+  --w-head: 500;
+  --w-h1: 400;
+
+  --px-clip: polygon(
+    0 calc(var(--step) * 2), var(--step) calc(var(--step) * 2), var(--step) var(--step),
+    calc(var(--step) * 2) var(--step), calc(var(--step) * 2) 0,
+    calc(100% - var(--step) * 2) 0, calc(100% - var(--step) * 2) var(--step),
+    calc(100% - var(--step)) var(--step), calc(100% - var(--step)) calc(var(--step) * 2),
+    100% calc(var(--step) * 2), 100% calc(100% - var(--step) * 2),
+    calc(100% - var(--step)) calc(100% - var(--step) * 2), calc(100% - var(--step)) calc(100% - var(--step)),
+    calc(100% - var(--step) * 2) calc(100% - var(--step)), calc(100% - var(--step) * 2) 100%,
+    calc(var(--step) * 2) 100%, calc(var(--step) * 2) calc(100% - var(--step)),
+    var(--step) calc(100% - var(--step)), var(--step) calc(100% - var(--step) * 2),
+    0 calc(100% - var(--step) * 2)
+  );
+  color-scheme: light;
+}
+
+:root:lang(ko) {
+  --font-display: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --font-text: var(--font-display);
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", monospace;
+  --lh-text: 1.78;
+  --lh-head: 1.24;
+  --lh-h1: 1.14;
+  --track-head: -0.026em;
+  --track-h1: -0.035em;
+  --track-label: 0.12em;
+  --w-h1: 500;
+}
+
+:root:lang(zh) {
+  /* system CJK fonts: no web-font download for Chinese */
+  --cjk-sc: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "Noto Sans SC";
+  --font-display: "Inter Tight", var(--cjk-sc), system-ui, sans-serif;
+  --font-text: var(--cjk-sc), system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, var(--cjk-sc), monospace;
+  --lh-text: 1.85;
+  --lh-head: 1.26;
+  --lh-h1: 1.14;
+  --track-head: 0;
+  --track-h1: -0.01em;
+  --track-label: 0.14em;
+  --w-h1: 500;
+}
+
+/* ------------------------------------------------------------- base */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: 24px;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1.0625rem;
+  line-height: var(--lh-text);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  overflow-wrap: break-word;
+}
+
+:lang(ko) body, body:lang(ko) { word-break: keep-all; }
+:lang(zh) body, body:lang(zh) { line-break: strict; }
+/* Line-break hints from the copy (build.py phrase_html): a phrase moves to the next line as a
+   whole, and wraps inside only when it alone is wider than the line (very narrow screens, or
+   enlarged letter and word spacing); a sentence stays whole when it fits, otherwise it wraps
+   inside and the next sentence starts a new line.
+   Chinese uses normal CJK breaking with line-break: strict, so 。and ， never start a line. */
+.ph { display: inline-block; }
+.sen { display: inline-block; }
+/* a heading's closing 。or ， takes half an em instead of a full, hollow one (fonts with "halt") */
+.pe { font-feature-settings: "halt"; }
+
+h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: var(--w-head); color: var(--ink); text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; } /* no one-word (or one-character) last lines */
+ul, ol { margin: 0; padding: 0; list-style: none; }
+a { color: inherit; }
+svg.px { display: block; image-rendering: pixelated; flex: none; }
+img, canvas { display: block; max-width: 100%; }
+
+::selection { background: var(--mist); color: var(--slate); }
+
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--slate);
+  outline-offset: 3px;
+}
+.section-dark :focus-visible { outline-color: var(--mist); }
+
+main:focus { outline: none; }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px; top: 12px;
+  z-index: 100;
+  padding: 10px 16px;
+  background: var(--slate);
+  color: #fff;
+  font-size: .875rem;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform .2s ease;
+}
+.skip-link:focus-visible { transform: none; }
+
+.label {
+  font-family: var(--font-mono);
+  font-size: .6875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--label);
+}
+:lang(ko) .label, :lang(zh) .label { font-size: .75rem; }
+/* Hangul falls back from JetBrains Mono, but the space stays a 0.72em mono space: tighten it */
+:lang(ko) .label, :lang(ko) .scroll-hint, :lang(ko) .badge, :lang(ko) .road-title { word-spacing: -0.4em; }
+:lang(zh) .label, :lang(zh) .scroll-hint, :lang(zh) .badge, :lang(zh) .road-title { word-spacing: -0.3em; }
+
+.num {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .08em;
+  color: var(--label);
+}
+
+.arrow {
+  display: inline-block;
+  font-family: var(--latin);
+  margin-left: .45em;
+  transition: transform .25s ease;
+}
+
+/* ------------------------------------------------------------- buttons (pixel-stepped corners) */
+.btn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 24px;
+  border: 0;
+  background: none;
+  font: 500 .9375rem/1.2 var(--font-text);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--btn-bg);
+  clip-path: var(--px-clip);
+  transition: background-color .2s ease;
+}
+.btn-primary { --btn-bg: var(--slate); color: #fff; }
+.btn-primary:hover { --btn-bg: var(--pine); }
+.btn-secondary { --btn-bg: var(--mist); color: var(--slate); }
+.btn-secondary:hover { --btn-bg: var(--mist-strong); }
+.btn:hover .arrow { transform: translate(2px, -2px); }
+.btn-sm { min-height: 40px; padding: 0 16px; font-size: .875rem; }
+
+/* ------------------------------------------------------------- language suggestion */
+.lang-suggest {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px var(--gutter);
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  font-size: .875rem;
+  color: var(--ink);
+}
+.lang-suggest[hidden] { display: none; }
+.lang-suggest .label { color: var(--pine); }
+.lang-suggest a, .lang-suggest button {
+  font: 500 .875rem/1.2 var(--font-text);
+  color: var(--slate);
+  background: none;
+  border: 0;
+  padding: 8px 4px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+.lang-suggest a { text-decoration-color: var(--deep); }
+
+/* ------------------------------------------------------------- header */
+.site-header { position: relative; z-index: 30; }
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 76px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 600 1.1875rem/1 var(--latin);
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 6px 0;
+  margin-right: auto;
+}
+.brand-mark { width: 24px; height: 24px; }
+
+.primary-nav ul { display: flex; align-items: center; gap: 4px; }
+.primary-nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: .9375rem;
+  color: var(--ink);
+  text-decoration: none;
+  background-image: linear-gradient(var(--slate), var(--slate));
+  background-size: 0 1px;
+  background-repeat: no-repeat;
+  background-position: 12px calc(100% - 8px);
+  transition: background-size .25s ease;
+}
+.primary-nav a:hover { background-size: calc(100% - 24px) 1px; }
+.nav-gh .arrow { margin-left: .3em; }
+
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+.lang-switch a {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 34px;
+  padding: 0 8px;
+  font: 500 .75rem/1 var(--font-mono);
+  letter-spacing: .06em;
+  color: var(--pine);
+  text-decoration: none;
+}
+.lang-switch a[lang="zh-Hans"] { font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; letter-spacing: 0; }
+.lang-switch a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: transparent;
+  clip-path: var(--px-clip);
+  --step: 2px;
+  transition: background-color .2s ease;
+}
+.lang-switch a:hover::before { background: var(--paper-2); }
+.lang-switch a[aria-current="page"] { color: #fff; }
+.lang-switch a[aria-current="page"]::before { background: var(--slate); }
+
+.menu-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  font: 500 .875rem/1 var(--font-text);
+  color: var(--ink);
+  cursor: pointer;
+}
+.menu-icon { display: grid; gap: 3px; }
+.menu-icon i { display: block; width: 14px; height: 2px; background: var(--slate); transition: transform .2s ease, opacity .2s ease; }
+.menu-icon i:nth-child(2) { width: 10px; }
+.menu-btn[aria-expanded="true"] .menu-icon i:nth-child(1) { transform: translateY(5px) rotate(45deg); }
+.menu-btn[aria-expanded="true"] .menu-icon i:nth-child(2) { opacity: 0; }
+.menu-btn[aria-expanded="true"] .menu-icon i:nth-child(3) { transform: translateY(-5px) rotate(-45deg); }
+
+/* Two copies of the language links so the tab order follows the visual order on both
+   layouts: desktop brand > nav > language; mobile brand > language > Menu > menu panel.
+   Only one copy is ever rendered. */
+.lang-switch-mobile { display: none; }
+
+@media (max-width: 900px) {
+  .header-row { gap: 8px; min-height: 64px; flex-wrap: wrap; }
+  .js .menu-btn { display: inline-flex; }
+  .lang-switch-desktop { display: none; }
+  /* the language pills set the first row's height, so it stays 64px when the menu wraps
+     onto a second row (the brand and the Menu button stay centred in it) */
+  .lang-switch-mobile { display: flex; min-height: 64px; padding-left: 0; border-left: 0; }
+  .lang-switch a { min-width: 36px; padding: 0 6px; }
+  .js .site-menu { display: none; }
+  .js .site-menu.is-open { display: block; }
+  .site-menu { width: 100%; }
+  .primary-nav ul {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 4px 0 16px;
+    border-top: 1px solid var(--line);
+  }
+  .primary-nav li + li { border-top: 1px solid var(--line); }
+  .primary-nav a {
+    display: flex;
+    padding: 14px 2px;
+    font-size: 1.0625rem;
+    background: none;
+  }
+}
+@media (max-width: 380px) {
+  .header-row { gap: 6px; }
+  .brand { gap: 8px; }
+  .brand span { font-size: 1.0625rem; }
+  .lang-switch a { min-width: 30px; padding: 0 4px; }
+  .menu-btn { padding: 0 4px; }
+}
+@media (max-width: 359px) {
+  .menu-label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .menu-btn { min-width: 40px; justify-content: center; }
+}
+
+/* ------------------------------------------------------------- hero */
+.hero { --tidy: 0; }
+.hero-grid {
+  --hero-pt: clamp(24px, 3.4vw, 52px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  padding-top: var(--hero-pt);
+  padding-bottom: 28px;
+}
+/* the headline sizes itself to this column (container units), so it never wraps a line */
+.hero-main { container-type: inline-size; }
+
+.badge {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: clamp(20px, 3vw, 36px);
+  padding: 8px 12px 8px 10px;
+  font: 500 .75rem/1.2 var(--font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.badge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper-2);
+  clip-path: var(--px-clip);
+  --step: 2px;
+}
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--deep);
+  box-shadow: 10px 0 0 var(--sage);
+  margin-right: 10px;
+  animation: blink 2.4s steps(1, end) 2; /* two blinks, then it rests */
+}
+@keyframes blink {
+  0%, 60% { background: var(--deep); box-shadow: 10px 0 0 var(--sage); }
+  61%, 100% { background: var(--sage); box-shadow: 10px 0 0 var(--deep); }
+}
+
+.hero-title {
+  --h1-fit: 12.2;   /* 100 / (widest line in em) with a little room; tuned per language */
+  --h1-max: 7rem;
+  font-family: var(--font-display);
+  font-weight: var(--w-h1);
+  font-size: clamp(2.25rem, 0.4rem + 6vw, 6rem);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--track-h1);
+}
+@supports (width: 1cqi) {
+  .hero-title { font-size: min(calc(var(--h1-fit) * 1cqi), var(--h1-max)); }
+}
+.hero-title > span { display: block; }
+:lang(ko) .hero-title { --h1-fit: 12.6; }
+:lang(zh) .hero-title { --h1-fit: 15.4; --h1-max: 6.5rem; }
+
+.hero-sub {
+  max-width: 34em;
+  margin-top: clamp(20px, 3vw, 36px);
+  font-size: clamp(1.0625rem, 1rem + .25vw, 1.1875rem);
+  color: var(--ink-soft);
+}
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cta-hint {
+  max-width: 40em;
+  margin-top: 14px;
+  font-size: .8125rem;
+  line-height: 1.6;
+  color: var(--pine);
+}
+
+.hero-aside {
+  display: flex;
+  flex-direction: column;
+}
+.hero-aside .cta-row { order: 0; margin-top: 0; }
+.hero-aside .cta-hint { order: 1; }
+.hero-aside .statement {
+  order: 2;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  max-width: none;
+}
+.hero-aside .hero-meta { order: 3; margin-top: 14px; }
+.statement {
+  font: 500 .9375rem/1.45 var(--font-display);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: var(--ink);
+}
+:lang(ko) .statement { letter-spacing: .04em; font-size: 1rem; line-height: 1.6; }
+:lang(zh) .statement { letter-spacing: .08em; font-size: 1rem; line-height: 1.7; }
+.hero-meta {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hero-meta svg { width: 24px; height: 24px; }
+.hero-meta p { font-size: .8125rem; color: var(--pine); text-align: right; }
+
+@media (max-width: 480px) {
+  /* phones: the pair spans the column like it does on desktop, side by side at equal widths,
+     or stacked full width when one row cannot hold both (Korean and Chinese below ~345px) */
+  .cta-row .btn { flex: 1 1 0; }
+}
+@media (max-width: 400px) {
+  /* small phones: tighter rhythm so the pixel field shows on the first screen */
+  .hero-grid { --hero-pt: 16px; gap: 24px; padding-bottom: 24px; }
+  .badge { margin-bottom: 16px; }
+  .hero-sub { margin-top: 16px; }
+  .hero-aside .statement { margin-top: 20px; padding-top: 14px; }
+  .hero-aside .hero-meta { margin-top: 10px; }
+}
+@media (max-width: 380px) {
+  /* a little more room, so English keeps both calls to action on one row down to 320px */
+  .cta-row .btn { padding: 0 16px; }
+  .cta-row .arrow { margin-left: .3em; }
+}
+
+@media (min-width: 960px) {
+  /* the padding lives in the columns, so the column rule runs from the header to the field */
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr) clamp(320px, 29vw, 420px);
+    gap: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .hero-main { padding: var(--hero-pt) clamp(32px, 4vw, 64px) clamp(36px, 3.6vw, 52px) 0; }
+  .hero-aside {
+    padding: calc(var(--hero-pt) + 6px) 0 clamp(36px, 3.6vw, 52px) clamp(24px, 2.4vw, 36px);
+    border-left: 1px solid var(--line);
+  }
+  /* Three groups in reading order: the statement at the top, level with the badge; the
+     actions in the middle; the mark and licence line at the foot, level with the end of the
+     intro. The spare height is split evenly between the two gaps (two auto margins), so the
+     column never opens one large hole next to the headline. */
+  .hero-aside .statement { order: 0; margin: 0; padding: 0; border: 0; }
+  .hero-aside .cta-row { order: 1; margin-top: auto; padding-top: 28px; }
+  /* the pair spans the column: side by side at equal widths, or stacked full width when the
+     column is too narrow for both (960-1199px) */
+  .hero-aside .cta-row .btn { flex: 1 1 0; }
+  .hero-aside .cta-hint { order: 2; }
+  .hero-aside .hero-meta { order: 3; margin-top: auto; padding-top: 28px; }
+}
+
+.hero-field { position: relative; border-top: 1px solid var(--line); }
+.tidy-grid {
+  width: 100%;
+  height: clamp(220px, 31vw, 480px);
+}
+.scroll-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  letter-spacing: .08em;
+  color: var(--deep);
+  opacity: calc(1 - var(--tidy) * 1.25); /* gone once the field is tidy; back when it scatters */
+}
+.hint-arrow { width: 10px; height: 10px; }
+/* every loop stops within 5 seconds (WCAG 2.2.2) */
+.js .hint-arrow { animation: nudge 1.8s steps(2, end) 2; }
+@keyframes nudge { 50% { transform: translateY(2px); } }
+
+/* ------------------------------------------------------------- sections */
+.section { padding-block: clamp(88px, 12vw, 184px); }
+.section-tight-top { padding-top: clamp(24px, 4vw, 56px); }
+.section-flush-top { padding-top: 0; }   /* the section above already ends with the full gap */
+.section-flush-bottom { padding-bottom: 0; }
+
+.editorial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+}
+@media (min-width: 900px) {
+  .editorial {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 64px;
+    align-items: start;
+  }
+}
+
+.ed-head h2 {
+  font-size: clamp(1.75rem, 0.95rem + 2.3vw, 3rem);
+  line-height: var(--lh-head);
+  letter-spacing: var(--track-head);
+  text-wrap: balance;
+  max-width: 13em;
+}
+.ed-head .label { margin-top: 18px; }
+.ed-head-wide h2 { max-width: 16em; }
+:lang(ko) .ed-head h2 { font-weight: 600; max-width: 14em; }
+:lang(zh) .ed-head h2 { max-width: 15em; }
+
+.prose p { max-width: 36em; }
+.prose p + p { margin-top: 1.1em; color: var(--ink-soft); }
+.ed-body { padding-top: 6px; }
+
+/* ------------------------------------------------------------- features */
+/* editorial columns: a hairline on top, a numbered pixel badge before each title, no boxes.
+   Each feature is a subgrid of three rows, so titles and bodies line up across a row even
+   when one title wraps. */
+.feature-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: clamp(24px, 3vw, 48px);
+  margin-top: clamp(40px, 6vw, 80px);
+  margin-bottom: -44px; /* cancels the last row's spacing; the next section sets the gap */
+}
+@media (min-width: 620px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1120px) { .feature-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0 44px;
+  border-top: 1px solid var(--line);
+}
+@supports (grid-template-rows: subgrid) {
+  .feature { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; }
+}
+.feature-icon { padding-bottom: clamp(28px, 3.4vw, 48px); }
+.feature h3 {
+  --title-lh: calc(1.25rem * 1.3); /* in rem, so the badge can centre on the first line */
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 1.25rem;
+  line-height: var(--title-lh);
+  letter-spacing: -0.01em;
+}
+:lang(ko) .feature h3, :lang(zh) .feature h3 { letter-spacing: -0.01em; font-weight: 600; }
+.num-badge {
+  position: relative;
+  isolation: isolate;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 22px;
+  margin-top: calc((var(--title-lh, 22px) - 22px) / 2); /* centred on the title's first line */
+  padding: 0 5px;
+  font: 500 .625rem/1 var(--font-mono);
+  letter-spacing: .04em;
+  color: #fff;
+}
+.num-badge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--slate);
+  clip-path: var(--px-clip);
+  --step: 2px;
+}
+.feature p { margin-top: 12px; font-size: .9375rem; line-height: 1.65; color: var(--ink-soft); max-width: 30em; }
+:lang(ko) .feature p, :lang(zh) .feature p { line-height: 1.75; }
+@media (max-width: 619px) {
+  .feature-icon { padding-bottom: 24px; }
+}
+
+/* ------------------------------------------------------------- how it works */
+.steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: clamp(48px, 7vw, 96px);
+}
+.step {
+  position: relative;
+  display: grid;
+  align-content: start;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 0 20px;
+  padding-bottom: 40px;
+}
+.step:last-child { padding-bottom: 0; }
+.step-art {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.step-art .node { width: auto; height: 60px; }
+.step-text h3 {
+  margin-top: 8px;
+  text-wrap: balance;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+:lang(ko) .step-text h3, :lang(zh) .step-text h3 { font-weight: 600; letter-spacing: -0.01em; }
+.step-text p { margin-top: 10px; max-width: 26em; font-size: .9375rem; color: var(--ink-soft); }
+
+/* dotted wire between nodes: vertical on small screens, horizontal on wide ones */
+.wire {
+  position: absolute;
+  left: 41px;
+  top: 72px;
+  bottom: -36px;
+  width: 3px;
+  background: linear-gradient(var(--sage) 0 3px, transparent 3px 7px) 0 0 / 3px 7px repeat-y;
+}
+.packet {
+  position: absolute;
+  left: -1.5px;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  background: var(--deep);
+}
+/* one trip down each wire, in order (device > server > agents), each time the steps come
+   into view (site.js toggles .is-live), so the motion lasts 4.4s and then rests */
+.js .packet { opacity: 0; }
+.js .steps.is-live .packet { animation: packet-down 2.2s steps(14, end) both; }
+.js .steps.is-live .step:nth-child(2) .packet { animation-delay: 2.2s; }
+@keyframes packet-down {
+  0% { top: 0; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: calc(100% - 6px); opacity: 0; }
+}
+
+@media (min-width: 820px) {
+  .steps { --col-gap: clamp(24px, 3vw, 48px); grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 var(--col-gap); }
+  .step { grid-template-columns: minmax(0, 1fr); padding-bottom: 0; }
+  .step-art { justify-content: flex-start; align-items: center; gap: 20px; height: 80px; margin-bottom: 28px; }
+  .step-art .node { height: 80px; }
+  .wire {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    flex: 1 1 auto;
+    width: auto;
+    height: 3px;
+    margin-right: calc(20px - var(--col-gap));
+    background: linear-gradient(90deg, var(--sage) 0 3px, transparent 3px 7px) 0 0 / 7px 3px repeat-x;
+  }
+  .packet { left: 0; top: -1.5px; }
+  .js .steps.is-live .packet { animation-name: packet-right; animation-timing-function: steps(18, end); }
+  @keyframes packet-right {
+    0% { left: 0; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { left: calc(100% - 6px); opacity: 0; }
+  }
+}
+
+/* ------------------------------------------------------------- privacy (dark band) */
+.section-dark {
+  background: var(--slate);
+  color: #F1F4EF;
+}
+.section-dark h2, .section-dark h3 { color: #fff; }
+.section-dark .label { color: var(--mist); }
+.privacy-list { display: grid; }
+.privacy-list li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 20px;
+  padding: 28px 0;
+  border-top: 1px solid rgba(202, 210, 197, .22);
+}
+.privacy-list li:last-child { border-bottom: 1px solid rgba(202, 210, 197, .22); }
+.privacy-list h3 { font-size: 1.1875rem; line-height: 1.35; letter-spacing: -0.01em; }
+:lang(ko) .privacy-list h3, :lang(zh) .privacy-list h3 { font-weight: 600; }
+.privacy-list p { margin-top: 8px; font-size: .9375rem; color: var(--mist); max-width: 34em; }
+.section-dark .ed-head h2 { max-width: 11em; }
+
+/* ------------------------------------------------------------- works with */
+.works { padding-bottom: clamp(64px, 8vw, 120px); }
+.label-heading { font-family: var(--font-mono); font-weight: 500; }
+.tool-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  margin-top: 28px;
+  font-family: var(--latin);
+  font-size: clamp(1.625rem, 0.8rem + 2.5vw, 3.25rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.tool { display: inline-flex; align-items: center; white-space: nowrap; }
+.tool:not(:last-child)::after {
+  content: "";
+  display: inline-block;
+  width: .18em;
+  height: .18em;
+  margin: 0 .55em;
+  background: var(--sage);
+  transform: translateY(.06em);
+}
+/* on narrow screens the list wraps, so the sage pixel leads each item instead of trailing it */
+@media (max-width: 619px) {
+  .tool-list { column-gap: .62em; }
+  .tool:not(:last-child)::after { content: none; }
+  .tool::before {
+    content: "";
+    display: inline-block;
+    width: .18em;
+    height: .18em;
+    margin-right: .32em;
+    background: var(--sage);
+    transform: translateY(.06em);
+  }
+}
+.works-note { margin-top: 28px; color: var(--ink-soft); }
+.fineprint { margin-top: 8px; font-size: .8125rem; line-height: 1.6; color: var(--pine); max-width: 52em; }
+
+/* ------------------------------------------------------------- roadmap */
+.roadmap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 40px;
+}
+@media (min-width: 560px) { .roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; } }
+.road-title {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--label);
+}
+.road-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.road-mark { width: 18px; height: 18px; margin-top: 3px; }
+.is-next li { color: var(--ink-soft); }
+.road-note { margin-top: 24px; }
+
+/* ------------------------------------------------------------- footer */
+.site-footer {
+  padding: clamp(56px, 8vw, 104px) 0 32px;
+  border-top: 1px solid var(--line);
+}
+
+.game { display: none; }
+.js .game { display: block; }
+.game:focus { outline: none; } /* holds focus for a moment after the last piece (site.js) */
+.game-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.game-score {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: .04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.game-score .slash { margin: 0 .2em; color: var(--deep); }
+
+.game-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: 24px;
+  margin-top: 16px;
+}
+/* finished: the empty field steps aside and the board settles in the middle
+   (site.js keeps the stage height, so nothing below moves) */
+.game.is-done .game-stage { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+.game.is-done .game-field { display: none; }
+@media (min-width: 720px) {
+  .game-stage { grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: center; }
+}
+.game-field {
+  position: relative;
+  height: 200px;
+  background-image: radial-gradient(circle at 1px 1px, rgba(132, 169, 140, .35) 1px, transparent 1.5px);
+  background-size: 16px 16px;
+}
+.game-board { display: grid; justify-items: center; gap: 16px; }
+.game-slots {
+  display: grid;
+  grid-template-columns: repeat(4, 34px);
+  grid-auto-rows: 34px;
+  gap: 4px;
+}
+.slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.slot::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed var(--deep); /* the only cue for a target: 4.6:1 on paper */
+}
+
+.gpx {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.gpx::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  background: var(--c, var(--slate));
+  transition: transform .18s ease;
+}
+.gpx[data-c="#84A98C"]::before { box-shadow: inset 0 0 0 1px var(--deep); } /* sage alone is 2.5:1 on paper */
+.gpx:hover::before { transform: scale(1.12); }
+.gpx:focus-visible { outline-offset: 0; }
+.gpx.is-placed { position: relative; cursor: default; }
+.gpx.is-placed::before { transform: none; }
+.game.is-done .gpx.is-placed::before { animation: wave .6s steps(3, end) both; animation-delay: calc(var(--i) * 45ms); }
+@keyframes wave {
+  50% { transform: translateY(-4px); }
+}
+.game-done { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.game-done[hidden] { display: none; }
+.game-done p { font-size: .9375rem; color: var(--ink); }
+
+.footer-tagline {
+  margin-top: clamp(56px, 8vw, 96px);
+  max-width: 18em;
+  font-family: var(--font-display);
+  font-size: clamp(1.625rem, 1rem + 2.4vw, 3rem);
+  font-weight: 500;
+  line-height: var(--lh-head);
+  letter-spacing: var(--track-head);
+  text-wrap: balance;
+}
+:lang(ko) .footer-tagline { font-weight: 600; }
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 32px;
+  margin-top: clamp(40px, 6vw, 72px);
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: .875rem;
+  color: var(--pine);
+}
+.footer-copy { font-family: var(--font-mono); font-size: .8125rem; letter-spacing: .02em; color: var(--ink); }
+.footer-links { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 0;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--mist);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color .2s ease;
+}
+.footer-links a:hover { text-decoration-color: var(--slate); }
+.footer-links li { display: inline-flex; align-items: center; }
+.footer-links .to-top { text-decoration: none; }
+.to-top-label {
+  text-decoration: underline;
+  text-decoration-color: var(--mist);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color .2s ease;
+}
+.to-top:hover .to-top-label { text-decoration-color: var(--slate); }
+.to-top .arrow { margin-left: .35em; }
+
+/* ------------------------------------------------------------- motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .js .packet, .js .steps.is-live .packet { animation: none; display: none; }
+  .js .hint-arrow, .badge-dot { animation: none; }
+  /* the field is drawn already tidy, so there is nothing to scroll for */
+  .scroll-hint { visibility: hidden; }
+}

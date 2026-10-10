@@ -1,5 +1,12 @@
-.DS_Store
-*.log
-.env
 *.env
+*.log
+*.pyc
+.DS_Store
+.env
+.pytest_cache/
+.venv/
+__pycache__/
 password
+reports/
+research_notes/
+site/dist/

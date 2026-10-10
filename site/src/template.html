@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="{{ _.html_lang }}" dir="ltr" data-page="{{ _.code }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ meta.title }}</title>
+<meta name="description" content="{{ meta.description }}">
+<link rel="canonical" href="{{ _.canonical }}">
+{{{ _.hreflang }}}
+<meta name="theme-color" content="#F8F9F7">
+<meta name="color-scheme" content="light">
+<meta name="author" content="Junwon Kim">
+<link rel="icon" href="{{ _.root }}assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ _.root }}assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="tidy-one">
+<meta property="og:title" content="{{ meta.og_title }}">
+<meta property="og:description" content="{{ meta.og_description }}">
+<meta property="og:url" content="{{ _.canonical }}">
+<meta property="og:locale" content="{{ meta.locale }}">
+{{{ _.og_locale_alternates }}}
+<meta property="og:image" content="{{ _.og_image }}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ meta.og_image_alt }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ meta.og_title }}">
+<meta name="twitter:description" content="{{ meta.og_description }}">
+<meta name="twitter:image" content="{{ _.og_image }}">
+<meta name="twitter:image:alt" content="{{ meta.og_image_alt }}">
+<script>
+  // A choice made with the language switcher wins over the default Korean root.
+  (function () {
+    document.documentElement.classList.add("js");
+    if (!{{ _.is_root }}) return;
+    try {
+      var l = window.localStorage.getItem("tidy-one:lang");
+      if (l === "en" || l === "zh") window.location.replace(l + "/" + window.location.hash);
+    } catch (e) {}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+{{{ _.font_links }}}
+<link rel="stylesheet" href="{{ _.root }}assets/site.css?v={{ _.version }}">
+<script type="application/ld+json">{{{ _.json_ld }}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">{{ nav.skip }}</a>
+
+<div class="lang-suggest" id="lang-suggest" hidden></div>
+
+<header class="site-header" id="top">
+  <div class="wrap header-row">
+    <a class="brand" href="{{ _.home }}" aria-label="tidy-one">{{{ _.logo }}}<span aria-hidden="true">tidy-one</span></a>
+    <nav class="lang-switch lang-switch-mobile" aria-label="{{ nav.language }}">{{{ _.lang_links }}}</nav>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-menu">
+      <span class="menu-icon" aria-hidden="true"><i></i><i></i><i></i></span><span class="menu-label">{{ nav.menu }}</span>
+    </button>
+    <div class="site-menu" id="site-menu">
+      <nav class="primary-nav" aria-label="{{ nav.menu }}">
+        <ul>
+          <li><a href="#features">{{ nav.features }}</a></li>
+          <li><a href="#how">{{ nav.how }}</a></li>
+          <li><a href="#privacy">{{ nav.privacy }}</a></li>
+          <li><a href="#status">{{ nav.status }}</a></li>
+          <li><a class="nav-gh" href="{{ _.repo }}" rel="noopener">{{ nav.github }}<span class="arrow" aria-hidden="true">↗</span></a></li>
+        </ul>
+      </nav>
+    </div>
+    <nav class="lang-switch lang-switch-desktop" aria-label="{{ nav.language }}">{{{ _.lang_links }}}</nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-grid">
+      <div class="hero-main">
+        <p class="badge"><span class="badge-dot" aria-hidden="true"></span>{{ hero.eyebrow }}</p>
+        <h1 id="hero-title" class="hero-title"><span>{{ hero.headline_1 | ph }}</span>{{ _.h1_sep }}<span>{{ hero.headline_2 | ph }}</span></h1>
+        <p class="hero-sub">{{ hero.sub | ph }}</p>
+      </div>
+      <div class="hero-aside">
+        <p class="statement">{{ hero.statement | ph }}</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="{{ _.releases }}" rel="noopener" aria-describedby="cta-hint">{{ hero.cta_primary }}<span class="arrow" aria-hidden="true">↗</span></a>
+          <a class="btn btn-secondary" href="{{ _.repo }}" rel="noopener">{{ hero.cta_secondary }}<span class="arrow" aria-hidden="true">↗</span></a>
+        </div>
+        <p class="cta-hint" id="cta-hint">{{ hero.cta_primary_hint }}</p>
+        <div class="hero-meta">
+          {{{ _.mark_small }}}
+          <p>{{ hero.meta_line }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-field">
+      <canvas id="tidy-grid" class="tidy-grid" role="img" aria-label="{{ meta.og_image_alt }}"></canvas>
+      <p class="wrap scroll-hint"><svg class="px hint-arrow" viewBox="0 0 5 5" width="10" height="10" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#52796F" d="M2 0h1v2h-1zM0 2h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM1 3h3v1h-3zM2 4h1v1h-1z"/></svg>{{ hero.scroll_hint }}</p>
+    </div>
+  </section>
+
+  <section class="section" id="problem" aria-labelledby="problem-title">
+    <div class="wrap editorial">
+      <div class="ed-head">
+        <h2 id="problem-title">{{ problem.heading | ph }}</h2>
+        <p class="label">{{ problem.label }}</p>
+      </div>
+      <div class="ed-body prose">
+        <p>{{ problem.p1 }}</p>
+        <p>{{ problem.p2 }}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-flush-top section-flush-bottom" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="ed-head ed-head-wide">
+        <h2 id="features-title">{{ features.heading | ph }}</h2>
+        <p class="label">{{ features.label }}</p>
+      </div>
+      <ul class="feature-grid">
+        <li class="feature">
+          <div class="feature-icon">{{{ _.icon_devices }}}</div>
+          <h3><span class="num-badge" aria-hidden="true">01</span><span class="feature-title">{{ features.devices.title | ph }}</span></h3>
+          <p>{{ features.devices.body }}</p>
+        </li>
+        <li class="feature">
+          <div class="feature-icon">{{{ _.icon_formats }}}</div>
+          <h3><span class="num-badge" aria-hidden="true">02</span><span class="feature-title">{{ features.formats.title | ph }}</span></h3>
+          <p>{{ features.formats.body }}</p>
+        </li>
+        <li class="feature">
+          <div class="feature-icon">{{{ _.icon_search }}}</div>
+          <h3><span class="num-badge" aria-hidden="true">03</span><span class="feature-title">{{ features.search.title | ph }}</span></h3>
+          <p>{{ features.search.body }}</p>
+        </li>
+        <li class="feature">
+          <div class="feature-icon">{{{ _.icon_agents }}}</div>
+          <h3><span class="num-badge" aria-hidden="true">04</span><span class="feature-title">{{ features.agents.title | ph }}</span></h3>
+          <p>{{ features.agents.body }}</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="ed-head ed-head-wide">
+        <h2 id="how-title">{{ how.heading | ph }}</h2>
+        <p class="label">{{ how.label }}</p>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-art">{{{ _.node_device }}}<span class="wire" aria-hidden="true"><i class="packet"></i></span></div>
+          <div class="step-text">
+            <span class="num" aria-hidden="true">01</span>
+            <h3>{{ how.step1.title | ph }}</h3>
+            <p>{{ how.step1.body }}</p>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-art">{{{ _.node_server }}}<span class="wire" aria-hidden="true"><i class="packet"></i></span></div>
+          <div class="step-text">
+            <span class="num" aria-hidden="true">02</span>
+            <h3>{{ how.step2.title | ph }}</h3>
+            <p>{{ how.step2.body }}</p>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-art">{{{ _.node_agents }}}</div>
+          <div class="step-text">
+            <span class="num" aria-hidden="true">03</span>
+            <h3>{{ how.step3.title | ph }}</h3>
+            <p>{{ how.step3.body }}</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section section-dark" id="privacy" aria-labelledby="privacy-title">
+    <div class="wrap editorial">
+      <div class="ed-head">
+        <h2 id="privacy-title">{{ privacy.heading | ph }}</h2>
+        <p class="label">{{ privacy.label }}</p>
+      </div>
+      <ul class="privacy-list">
+        <li>
+          {{{ _.icon_lock }}}
+          <div><h3>{{ privacy.originals.title }}</h3><p>{{ privacy.originals.body }}</p></div>
+        </li>
+        <li>
+          {{{ _.icon_key }}}
+          <div><h3>{{ privacy.secrets.title }}</h3><p>{{ privacy.secrets.body }}</p></div>
+        </li>
+        <li>
+          {{{ _.icon_code }}}
+          <div><h3>{{ privacy.open.title }}</h3><p>{{ privacy.open.body }}</p></div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section works" id="works-with" aria-labelledby="works-title">
+    <div class="wrap">
+      <h2 class="label label-heading" id="works-title">{{ works_with.label }}</h2>
+      <ul class="tool-list">{{{ _.works_items }}}</ul>
+      <p class="works-note">{{ works_with.note }}</p>
+      <p class="fineprint">{{ works_with.disclaimer }}</p>
+    </div>
+  </section>
+
+  <section class="section section-tight-top" id="status" aria-labelledby="status-title">
+    <div class="wrap editorial">
+      <div class="ed-head">
+        <h2 id="status-title">{{ status.heading | ph }}</h2>
+        <p class="label">{{ status.label }}</p>
+      </div>
+      <div class="ed-body">
+        <div class="roadmap">
+          <div class="road-col">
+            <h3 class="road-title">{{ status.done_label }}</h3>
+            <ul class="road-list is-done">{{{ _.done_items }}}</ul>
+          </div>
+          <div class="road-col">
+            <h3 class="road-title">{{ status.next_label }}</h3>
+            <ul class="road-list is-next">{{{ _.next_items }}}</ul>
+          </div>
+        </div>
+        <p class="fineprint road-note">{{ status.note }}</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="game" id="game" tabindex="-1" role="group" aria-labelledby="game-hint" aria-describedby="game-desc" data-piece="{{ game.piece }}" data-done="{{ game.done }}">
+      <div class="game-bar">
+        <p class="label" id="game-hint">{{ game.hint }}</p>
+        <p class="game-score" aria-live="polite" aria-atomic="true"><span id="game-score">00</span><span class="slash">/</span><span>{{ _.game_total }}</span></p>
+      </div>
+      <p class="sr-only" id="game-desc">{{ game.aria }}</p>
+      <p class="sr-only" id="game-live" role="status" aria-live="polite"></p>
+      <div class="game-stage">
+        <div class="game-field" id="game-field"></div>
+        <div class="game-board">
+          <ol class="game-slots" id="game-slots" aria-hidden="true">{{{ _.game_slots }}}</ol>
+          <div class="game-done" id="game-done" hidden>
+            <p>{{ game.done }}</p>
+            <button class="btn btn-secondary btn-sm" type="button" id="game-reset">{{ game.reset }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="footer-tagline">{{ footer.tagline | ph }}</p>
+
+    <div class="footer-bottom">
+      <p class="footer-copy">{{ footer.copyright }}</p>
+      <ul class="footer-links">
+        <li><a href="{{ _.repo }}/blob/main/LICENSE" rel="noopener license">{{ footer.license }}</a></li>
+        <li><a href="{{ _.repo }}" rel="noopener">{{ footer.github }}</a></li>
+        <li>{{ footer.made_in }}</li>
+        <li><a href="#top" class="to-top"><span class="to-top-label">{{ footer.back_to_top }}</span><span class="arrow" aria-hidden="true">↑</span></a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script type="application/json" id="lang-data">{{{ _.suggest_json }}}</script>
+<script src="{{ _.root }}assets/site.js?v={{ _.version }}" defer></script>
+</body>
+</html>
