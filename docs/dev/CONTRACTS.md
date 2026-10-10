@@ -14,7 +14,7 @@ tidy index ─ scan ─ extract ─ chunk ─ embed(fp32) ─▶ outbox/*.jsonl 
 - `model_id = "kure-v1"`: `nlpai-lab/KURE-v1` (MIT, bge-m3 fine-tune, 1024-d, CLS pooling, L2-normalised; verify pooling from its sentence-transformers config).
 - Device embeds passages with fp32 ONNX; hub embeds queries with int8 ONNX (dynamic quantisation). Same `model_id`; vectors are compatible.
 - Model files: `$TIDY_MODEL_DIR` (default `~/.cache/tidy-one/models`) / `kure-v1/{fp32,int8}/model.onnx` + `tokenizer.json`.
-- Max sequence 512 tokens; chunks are ~900 chars so they fit.
+- Max sequence 512 tokens. Chunks are at most 900 chars, and the agent re-splits any chunk the model's tokenizer counts above 512 tokens (dense Hangul, Hanja or emoji text), so nothing is truncated.
 
 ## Module ownership and interfaces
 
@@ -41,11 +41,11 @@ tidy index ─ scan ─ extract ─ chunk ─ embed(fp32) ─▶ outbox/*.jsonl 
 - `scan(roots: list[str], excludes: list[str]) -> Iterator[FileInfo]` where `FileInfo(path, size, mtime, ctime)`; skips hidden files/dirs, `.git`, `node_modules`, `.venv`, `__pycache__`, `~/Library`, app bundles, packages (`*.app`, `*.photoslibrary`), iCloud dataless files (`st_flags & SF_DATALESS`), files > 200MB, plus user `excludes` (glob).
 - `is_secret_path(path) -> bool` — `.env*`, `*.pem`, `*.key`, `id_rsa*`, `id_ed25519*`, `*.kdbx`, `*.p12`, `*.keychain*`, names containing password/passwd/secret/credential/token (ko: 비밀번호, 암호). Secret files are never extracted or sent.
 - `extract_file(path) -> Extracted(title, mime, modality, text_blocks: list[TextBlock(text, page|None)], sensitivity, extra)`; supports md/txt/csv/json/rtf/html, pdf, docx, pptx, xlsx, hwpx, hwp (best effort), else metadata-only (empty blocks).
-- `chunk_blocks(blocks, max_chars=900, overlap=120) -> list[Chunk]` in `tidy_one/extract/chunk.py` — paragraph/sentence-aware for Korean (split on blank lines, `다.`, `요.`, `. `, `? `, `! `), keeps page numbers, adds one `field="meta"` chunk with title + path components + dates.
+- `chunk_blocks(blocks, max_chars=900, overlap=120, *, count_tokens=None, max_tokens=512) -> list[Chunk]` in `tidy_one/extract/chunk.py` — paragraph/sentence-aware for Korean (split on blank lines, `다.`, `요.`, `. `, `? `, `! `), keeps page numbers, adds one `field="meta"` chunk with title + path components + dates.
 - Content sensitivity heuristic: resident registration numbers (`\d{6}-[1-4]\d{6}`), passport/card numbers → `SENS_ID`; private keys/API tokens patterns → `SENS_SECRET` (whole document skipped).
 
 ### `tidy_one/hub/` (hub owner)
-- `ingest(lines: Iterable[str], catalog: Catalog) -> dict` (counts; bad lines reported, not fatal). CLI: `tidy ingest [FILE|-]`.
+- `ingest(lines: Iterable[str], catalog: Catalog) -> dict` (counts; bad lines reported, not fatal; a storage error such as a locked or full database stops the stream). CLI: `tidy ingest [FILE|-]` exits 1 when any line failed, and `tidy push` then keeps the whole batch in the outbox and sends it again (records are idempotent).
 - `server.py`: MCP server (official `mcp` SDK, FastMCP) over streamable-http on `127.0.0.1:${TIDY_PORT:-8100}` path `/mcp`; tools:
   - `search(query: str, kind?: "text"|"image"|"video"|"audio"|"message", source?: str, date_from?: str, date_to?: str, place?: str, k: int = 10)` — embeds `query` with int8 `TextEncoder`, calls `Catalog.search`. Small input schema (<16KiB).
   - `fetch(doc_id: str, offset: int = 0, length: int = 4000)`
@@ -55,7 +55,7 @@ tidy index ─ scan ─ extract ─ chunk ─ embed(fp32) ─▶ outbox/*.jsonl 
 
 ### `tidy_one/agent/` + `tidy_one/cli.py` (agent owner)
 - Config `~/.config/tidy-one/config.toml`: `device_id`, `roots`, `excludes`, `hub` (`ssh = "memory@host"`, `remote_cmd = "tidy ingest -"`), `outbox_dir`.
-- `state.sqlite` per device: `path -> size, mtime, content_hash, doc_id, chunk_hashes, pushed_at`; unchanged (size, mtime) → skip; changed bytes → re-extract; changed chunks only → re-embed; vanished paths → tombstone record.
+- `state.sqlite` per device: `path -> size, mtime, content_hash, doc_id, chunk_hashes, pushed_at`; unchanged (size, mtime) → skip; changed bytes → re-extract; changed chunks only → re-embed; vanished paths, and paths no configured root covers any more, → tombstone record. Each row records the sensitivity-rules/chunker version it was checked with; when that changes, unchanged files are re-checked once (newly secret → tombstone; changed chunks → re-sent). File documents carry `created_at`/`updated_at` as ISO 8601 local time with the device's UTC offset (`2024-03-05T08:30:00+09:00`), so date filters use the owner's day.
 - `tidy index [--limit N] [--dry-run]` → writes `outbox/<ts>.jsonl` batches (≤ 500 records each).
 - `tidy push` → streams outbox batches to hub over `ssh <target> <remote_cmd>`; moves sent batches to `outbox/sent/`. `tidy push --local DB` applies to a local catalog (for testing / Mac-local search).
 - `tidy serve`, `tidy ingest`, `tidy search QUERY` (local debug, prints hits) — CLI wires hub functions.

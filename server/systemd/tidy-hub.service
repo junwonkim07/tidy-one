@@ -1,0 +1,21 @@
+[Unit]
+Description=tidy-one: hub MCP server over the catalog (streamable-http, localhost only)
+After=network-online.target
+
+[Service]
+User=memory
+WorkingDirectory=/home/memory
+Environment=PATH=/home/memory/.local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+Environment=TIDY_DB=/home/memory/.local/share/tidy-one/catalog.sqlite TIDY_MODEL_DIR=/home/memory/.cache/tidy-one/models TIDY_PORT=8100
+ExecStart=/home/memory/.local/bin/tidy serve
+MemoryMax=1800M
+NoNewPrivileges=true
+# the catalog holds the full text of private documents: files it creates are owner-only
+UMask=0077
+PrivateTmp=true
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

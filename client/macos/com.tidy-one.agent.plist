@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  tidy-one device agent: `tidy index && tidy push` every 30 minutes at low priority.
+
+  Install:
+    cp client/macos/com.tidy-one.agent.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.tidy-one.agent.plist
+  Run now:   launchctl kickstart gui/$(id -u)/com.tidy-one.agent
+  Remove:    launchctl bootout gui/$(id -u)/com.tidy-one.agent
+
+  launchd does not expand ~ in plist paths, so the shell expands it and appends to the log.
+  Reading ~/Documents, ~/Desktop, ~/Downloads and iCloud Drive from a background job may need a
+  macOS privacy grant (System Settings > Privacy & Security > Full Disk Access for the Python that
+  runs tidy). Without it those roots read as unavailable and their documents are kept, not removed.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.tidy-one.agent</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-lc</string>
+    <string>exec &gt;&gt;"$HOME/Library/Logs/tidy-one.log" 2&gt;&amp;1; ~/.local/bin/tidy index &amp;&amp; ~/.local/bin/tidy push</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>1800</integer>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>Nice</key>
+  <integer>10</integer>
+  <key>LowPriorityIO</key>
+  <true/>
+  <key>LowPriorityBackgroundIO</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>/dev/null</string>
+  <key>StandardErrorPath</key>
+  <string>/dev/null</string>
+</dict>
+</plist>
