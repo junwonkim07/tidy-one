@@ -1,12 +1,11 @@
 {
   "meta": {
-    "lang": "en",
-    "locale": "en_US",
     "title": "tidy-one — One tidy, private memory for all your AI agents",
     "description": "Your documents, photos, videos and cloud apps in one private search index, built on your own devices. Originals stay put, and every AI agent searches it through MCP. Coming in 2026.",
     "og_title": "tidy-one — Scattered memory, tidied into one",
     "og_description": "A private memory index shared by all your AI agents. Open source, self-hosted, with Korean-first search. Coming soon.",
-    "og_image_alt": "Scattered sage pixels settling into an ordered grid"
+    "og_image_alt": "The tidy-one mascot, a small pixel-art server with a screen face, sweeping scattered pixels into a tidy stack",
+    "field_alt": "Scattered sage pixels settling into an ordered grid as you scroll"
   },
   "nav": {
     "features": "Features",
@@ -14,23 +13,19 @@
     "privacy": "Privacy",
     "status": "Roadmap",
     "github": "GitHub",
-    "language": "Language",
-    "lang_ko": "한국어",
-    "lang_en": "English",
-    "lang_zh": "简体中文",
     "menu": "Menu",
-    "skip": "Skip to content"
+    "skip": "Skip to content",
+    "home": "tidy-one home",
+    "theme": "Dark theme",
+    "theme_hint": "Switch between the light and dark theme"
   },
   "hero": {
     "eyebrow": "Coming soon · 2026",
     "headline_1": "Scattered memory,",
     "headline_2": "tidied into one.",
     "statement": "A private memory index |shared by all |your AI agents",
-    "sub": "Your documents, photos, videos and cloud apps, indexed on your own devices and searchable in one place. Originals stay where they are, and every agent you use searches it all through MCP.",
     "cta_primary": "Get notified",
-    "cta_primary_hint": "On GitHub, choose Watch → Custom → Releases to hear when the first version ships.",
     "cta_secondary": "View on GitHub",
-    "meta_line": "Open source · MIT · Self-hosted",
     "scroll_hint": "Scroll to tidy up"
   },
   "problem": {
@@ -44,11 +39,16 @@
     "heading": "Wherever it lives. ||Whatever it is. ||Whoever asks.",
     "devices": {
       "title": "Across your devices",
-      "body": "A lightweight indexing agent runs quietly on your Mac and Windows PC. On your iPhone, you search the same index."
+      "body": "A lightweight agent indexes quietly on your computers. Your iPhone searches the same index.",
+      "chips": [["laptop", "Mac"], ["window", "Windows"], ["phone", "iPhone"]]
     },
     "formats": {
       "title": "In any format",
-      "body": "PDF, Office and HWP documents, photos and videos, plus your work in Notion, Google Drive, Gmail, Plaud and Slack."
+      "body": "Documents, photos and videos, plus the cloud apps you work in.",
+      "chips": [
+        ["doc", "PDF"], ["doc", "Office"], ["doc", "HWP"], ["photo", "Photos"], ["video", "Videos"],
+        ["note", "Notion"], ["folder", "Google Drive"], ["mail", "Gmail"], ["mic", "Plaud"], ["chat", "Slack"]
+      ]
     },
     "search": {
       "title": "Korean-first search",
@@ -68,7 +68,7 @@
     },
     "step2": {
       "title": "Send only excerpts and vectors",
-      "body": "Short excerpts and vectors go to a small server you run yourself, a $24/month VPS. Originals never do."
+      "body": "They go to a small server you run yourself, a $24/month VPS. Originals never do."
     },
     "step3": {
       "title": "Search from any agent",
@@ -93,31 +93,34 @@
   },
   "works_with": {
     "label": "Works with",
-    "items": ["Claude Code", "Codex", "claude.ai", "Claude iOS", "Aside"],
     "note": "Plus any other client that speaks MCP.",
-    "disclaimer": "tidy-one is an independent open-source project and is not affiliated with any of the services above."
+    "disclaimer": "tidy-one is an independent open-source project and is not affiliated with any of the services above. Product names and logos belong to their owners."
   },
   "status": {
     "label": "Roadmap",
     "heading": "Where things stand.",
     "done_label": "Done",
     "next_label": "Next",
-    "done": ["Shared memory across devices", "Semantic search", "Push-to-deploy server"],
-    "next": ["Document & photo indexing", "Video indexing", "Cloud sources", "Windows indexing agent"],
+    "done": [["devices", "Shared memory across devices"], ["search", "Semantic search"], ["server", "Push-to-deploy server"]],
+    "next": [["doc photo", "Document & photo indexing"], ["video", "Video indexing"], ["cloud", "Cloud sources"], ["window", "Windows indexing agent"]],
     "note": "First release in 2026. The order may change."
   },
   "footer": {
-    "tagline": "One tidy, private memory ||for all your AI agents.",
-    "copyright": "© 2026 Junwon Kim",
+    "tagline": "One tidy, private memory |for all your AI agents.",
+    "made_by": "Made by Junwon Kim",
+    "links_label": "Project",
+    "github": "GitHub repository",
     "license": "MIT License",
-    "made_in": "Made in Seoul",
-    "github": "GitHub",
-    "back_to_top": "Back to top"
+    "releases": "Watch releases",
+    "readme": "Read the README",
+    "back_to_top": "Back to top",
+    "copyright": "© 2026 Junwon Kim. MIT License."
   },
   "game": {
     "hint": "Tidy the pixels",
     "done": "All tidy.",
     "reset": "Scatter again",
+    "scatter": "Scatter the pixels again",
     "aria": "A small game: click or tap the scattered pixels to put them back in the grid",
     "piece": "Move pixel {n} to its slot"
   }

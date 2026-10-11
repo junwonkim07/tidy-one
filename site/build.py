@@ -3,25 +3,31 @@
 
     python3 build.py
 
-Renders src/template.html with the copy in i18n/{ko,en,zh}.json into
+Renders src/template.html with the copy in i18n/en.json and the client list in
+i18n/clients.json into
 
-    dist/index.html      Korean (default)
-    dist/en/index.html   English
-    dist/zh/index.html   Simplified Chinese
+    dist/index.html      the page (English)
+    dist/en/index.html   redirect to ../ (the page used to have /en/ and /zh/ versions)
+    dist/zh/index.html   redirect to ../
 
-and copies src/assets/ to dist/assets/. It also draws the pixel art
-(inline SVG sprites, favicon, Open Graph image, touch icon) from the
-bitmaps below, so the art stays in the Sage palette and needs no tools.
+and copies src/assets/ to dist/assets/. Along the way it inlines
+
+  * one hidden SVG sprite with the 16 x 16 pixel icons (ICONS below) and the mascot
+    poses (src/assets/mascot/mascot-*.svg), so every use follows the light/dark theme
+    through CSS custom properties,
+  * the client logos (src/assets/logos/*.svg, fill="currentColor"),
+
+and draws favicon.svg, apple-touch-icon.png and og.png from the mascot bitmaps.
 
 Standard library only (Python 3.9+). SITE_BASE_URL is the absolute base used
-for canonical, hreflang, og:url, og:image, the sitemap and robots.txt. It
-defaults to the GitHub Pages project URL; set it for another host, e.g.
+for canonical, og:url, og:image, the sitemap and robots.txt. It defaults to the
+GitHub Pages project URL; set it for another host, e.g.
 
     SITE_BASE_URL=https://tidy-one.example python3 build.py
 
-(SITE_URL is still read as an older alias.) Links inside the pages (assets,
-language switcher, home) are relative, so dist/ works at / on a local server
-and under /tidy-one/ on GitHub Pages without rebuilding.
+(SITE_URL is still read as an older alias.) Links inside the page (assets, home)
+are relative, so dist/ works at / on a local server and under /tidy-one/ on
+GitHub Pages without rebuilding.
 """
 
 import hashlib
@@ -39,6 +45,9 @@ ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 I18N = ROOT / "i18n"
 DIST = ROOT / "dist"
+COPY_FILE = I18N / "en.json"
+CLIENTS_FILE = I18N / "clients.json"
+MASCOT_DIR = SRC / "assets" / "mascot"
 
 DEFAULT_BASE_URL = "https://junwonkim07.github.io/tidy-one"
 SITE_BASE_URL = (
@@ -48,169 +57,676 @@ if not re.match(r"^https?://[^/\s]+(/[^\s]*)?$", SITE_BASE_URL):
     sys.exit("SITE_BASE_URL must be an absolute http(s) URL, got %r" % SITE_BASE_URL)
 REPO_URL = "https://github.com/junwonkim07/tidy-one"
 
-# code, output dir (relative to dist), <html lang>, hreflang
-LANGS = [
-    ("ko", "", "ko", "ko"),
-    ("en", "en/", "en", "en"),
-    ("zh", "zh/", "zh-Hans", "zh-Hans"),
-]
-SWITCH_LABEL = {"ko": "KO", "en": "EN", "zh": "中文"}
+# Old language URLs that now redirect to the English page.
+OLD_PAGES = ["en/", "zh/"]
 
 # ---------------------------------------------------------------- palette
 PALETTE = {
-    "M": "#CAD2C5",  # mist
-    "G": "#84A98C",  # sage
-    "D": "#52796F",  # deep sage
-    "P": "#354F52",  # pine
-    "S": "#2F3E46",  # slate
-    "W": "#F8F9F7",  # paper
+    "mist": "#CAD2C5",
+    "sage": "#84A98C",
+    "deep": "#52796F",
+    "pine": "#354F52",
+    "slate": "#2F3E46",
+    "paper": "#F8F9F7",
+    "paper2": "#EEF1EC",
 }
-# On the dark (slate) band the same bitmaps are re-inked.
-ON_DARK = {"S": "#CAD2C5", "M": "#354F52", "G": "#84A98C", "D": "#84A98C", "P": "#52796F", "W": "#2F3E46"}
 
-# ---------------------------------------------------------------- bitmaps
-# '.' is transparent; letters map through PALETTE.
-SPRITES = {
-    "mark": [
-        ".........GGG",
-        "SSS.SSS..GGG",
-        "SSS.SSS..GGG",
-        "SSS.SSS.....",
-        "............",
-        "SSS.PPP.PPP.",
-        "SSS.PPP.PPP.",
-        "SSS.PPP.PPP.",
-        "............",
-        "PPP.PPP.DDD.",
-        "PPP.PPP.DDD.",
-        "PPP.PPP.DDD.",
+# ---------------------------------------------------------------- pixel icons
+# 16 x 16. '#' is drawn in currentColor, '+' in the accent (--icon-accent), '.' is empty.
+# One-pixel outlines with cut corners and an accent fill, like the mascot.
+ICONS = {
+    "hourglass": [
+        "................",
+        "..############..",
+        "...#........#...",
+        "...#++++++++#...",
+        "....#++++++#....",
+        ".....#++++#.....",
+        "......#++#......",
+        ".......##.......",
+        "......#..#......",
+        ".....#....#.....",
+        "....#..++..#....",
+        "...#.++++++.#...",
+        "...#++++++++#...",
+        "..############..",
+        "................",
+        "................",
     ],
-    # feature icons, 12 x 12
-    "devices": [
-        "............",
-        "SSSSSSSSS...",
-        "SMMMMMMMS...",
-        "SMGGGMMMS...",
-        "SMMMMMMMSSSS",
-        "SMDDDDMMSMMS",
-        "SMMMMMMMSGMS",
-        "SSSSSSSSSMMS",
-        "...SSS..SDDS",
-        ".SSSSSSSSMMS",
-        "........SSSS",
-        "............",
+    "check": [
+        "................",
+        "..############..",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#+++++++++##+#.",
+        ".#++++++++##++#.",
+        ".#+++++++##+++#.",
+        ".#+##+++##++++#.",
+        ".#++##+##+++++#.",
+        ".#+++###++++++#.",
+        ".#++++#+++++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        "..############..",
+        "................",
     ],
-    "formats": [
-        "....SSSSSSS.",
-        "....SMMMMMS.",
-        "..SSSSSSSMS.",
-        "..SMMMMMSMS.",
-        "SSSSSSSMSMS.",
-        "SMMMMMSMSSS.",
-        "SMGGGMSMS...",
-        "SMMMMMSSS...",
-        "SMDDDMS.....",
-        "SMMMMMS.....",
-        "SSSSSSS.....",
-        "............",
+    "scatter": [
+        "................",
+        ".###.......++...",
+        ".###.......++...",
+        ".###............",
+        "......++........",
+        "......++....###.",
+        "............###.",
+        "..++........###.",
+        "..++............",
+        "........###.....",
+        "........###.....",
+        "........###..++.",
+        "..###........++.",
+        "..###...........",
+        "..###.....++....",
+        "..........++....",
     ],
-    # magnifier: a solid slate ring and handle, so it carries the same weight as the other icons
+    "grid": [
+        "................",
+        ".######..######.",
+        ".#....#..#++++#.",
+        ".#....#..#++++#.",
+        ".#....#..#++++#.",
+        ".#....#..#++++#.",
+        ".######..######.",
+        "................",
+        "................",
+        ".######..######.",
+        ".#++++#..#....#.",
+        ".#++++#..#....#.",
+        ".#++++#..#....#.",
+        ".#++++#..#....#.",
+        ".######..######.",
+        "................",
+    ],
+    "flow": [
+        "................",
+        "................",
+        "......####......",
+        "......#++#......",
+        "......#++#......",
+        "......####......",
+        ".......##.......",
+        "......#..#......",
+        ".....#....#.....",
+        "....#......#....",
+        "..####....####..",
+        "..#++#....#++#..",
+        "..#++#....#++#..",
+        "..####....####..",
+        "................",
+        "................",
+    ],
+    "shield": [
+        "................",
+        ".......##.......",
+        ".....##++##.....",
+        "...##++++++##...",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..#++++##++++#..",
+        "..#+++####+++#..",
+        "..#++++##++++#..",
+        "..#++++##++++#..",
+        "...#++++++++#...",
+        "...#++++++++#...",
+        "....#++++++#....",
+        ".....##++##.....",
+        ".......##.......",
+        "................",
+    ],
+    "plug": [
+        "................",
+        ".....#....#.....",
+        ".....#....#.....",
+        ".....#....#.....",
+        "...##########...",
+        "...#++++++++#...",
+        "...#++++++++#...",
+        "...#++++++++#...",
+        "....#++++++#....",
+        ".....##++##.....",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        "................",
+    ],
+    "flag": [
+        "................",
+        "...##...........",
+        "...##########...",
+        "...##+++++++#...",
+        "...##++++++#....",
+        "...##+++++#.....",
+        "...##++++++#....",
+        "...##+++++++#...",
+        "...##########...",
+        "...##...........",
+        "...##...........",
+        "...##...........",
+        "...##...........",
+        "..####..........",
+        "................",
+        "................",
+    ],
+    "laptop": [
+        "................",
+        "................",
+        "................",
+        "..############..",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..############..",
+        ".#............#.",
+        "################",
+        "................",
+        "................",
+        "................",
+    ],
+    "window": [
+        "................",
+        "................",
+        ".##############.",
+        ".#+++++##+++++#.",
+        ".#+++++##+++++#.",
+        ".#+++++##+++++#.",
+        ".##############.",
+        ".#+++++##+++++#.",
+        ".#+++++##+++++#.",
+        ".#+++++##+++++#.",
+        ".##############.",
+        ".......##.......",
+        ".......##.......",
+        ".....######.....",
+        "................",
+        "................",
+    ],
+    "phone": [
+        "................",
+        ".....######.....",
+        "....#......#....",
+        "....#++++++#....",
+        "....#++++++#....",
+        "....#++++++#....",
+        "....#++++++#....",
+        "....#++++++#....",
+        "....#++++++#....",
+        "....#++++++#....",
+        "....#......#....",
+        "....#..##..#....",
+        "....#......#....",
+        ".....######.....",
+        "................",
+        "................",
+    ],
+    "doc": [
+        "................",
+        "...########.....",
+        "...#++++++##....",
+        "...#++++++#+#...",
+        "...#++++++####..",
+        "...#+++++++++#..",
+        "...#+######++#..",
+        "...#+++++++++#..",
+        "...#+######++#..",
+        "...#+++++++++#..",
+        "...#+####++++#..",
+        "...#+++++++++#..",
+        "...#+++++++++#..",
+        "...###########..",
+        "................",
+        "................",
+    ],
+    "photo": [
+        "................",
+        "................",
+        ".##############.",
+        ".#............#.",
+        ".#.........++.#.",
+        ".#.........++.#.",
+        ".#............#.",
+        ".#....+.......#.",
+        ".#...+++......#.",
+        ".#..+++++..+..#.",
+        ".#.+++++++++++#.",
+        ".#++++++++++++#.",
+        ".##############.",
+        "................",
+        "................",
+        "................",
+    ],
+    "video": [
+        "................",
+        "................",
+        "..############..",
+        ".#++++++++++++#.",
+        ".#++++#+++++++#.",
+        ".#++++##++++++#.",
+        ".#++++###+++++#.",
+        ".#++++####++++#.",
+        ".#++++###+++++#.",
+        ".#++++##++++++#.",
+        ".#++++#+++++++#.",
+        ".#++++++++++++#.",
+        "..############..",
+        "................",
+        "................",
+        "................",
+    ],
+    "cloud": [
+        "................",
+        "................",
+        "................",
+        ".......####.....",
+        "......#++++#....",
+        "...###++++++#...",
+        "..#+++++++++##..",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        "..############..",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    "mail": [
+        "................",
+        "................",
+        "................",
+        ".##############.",
+        ".##++++++++++##.",
+        ".#+#++++++++#+#.",
+        ".#++#++++++#++#.",
+        ".#+++#++++#+++#.",
+        ".#++++####++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".##############.",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    "mic": [
+        "................",
+        "......####......",
+        ".....#++++#.....",
+        ".....#++++#.....",
+        ".....#++++#.....",
+        ".....#++++#.....",
+        "...#.#++++#.#...",
+        "...#..####..#...",
+        "....#......#....",
+        ".....######.....",
+        ".......##.......",
+        ".......##.......",
+        ".....######.....",
+        "................",
+        "................",
+        "................",
+    ],
+    "chat": [
+        "................",
+        "................",
+        "..############..",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#+##++##++##+#.",
+        ".#+##++##++##+#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        "..###++#######..",
+        "....#+#.........",
+        "....##..........",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    "note": [
+        "................",
+        "..###########...",
+        "..#+++++++++#...",
+        "..#+##+++++##...",
+        "..#+++++++++#...",
+        "..#+#######+#...",
+        "..#+++++++++#...",
+        "..#+#######+#...",
+        "..#+++++++++#...",
+        "..#+#####+++#...",
+        "..#+++++++++#...",
+        "..#++++++++##...",
+        "..#+++++++#+#...",
+        "..##########....",
+        "................",
+        "................",
+    ],
+    "folder": [
+        "................",
+        "................",
+        ".#####..........",
+        ".#+++##########.",
+        ".#++++++++++++#.",
+        ".##############.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".#++++++++++++#.",
+        ".##############.",
+        "................",
+        "................",
+        "................",
+    ],
     "search": [
-        "..SSSS......",
-        ".SSMMSS.....",
-        "SSMGGMSS....",
-        "SMGMMMMS....",
-        "SMMMMMMS....",
-        "SSMMMMSS....",
-        ".SSMMSS.....",
-        "..SSSSSS....",
-        "......SSS...",
-        ".......SSS..",
-        "........SSS.",
-        ".........SS.",
+        "................",
+        "....######......",
+        "...#++++++#.....",
+        "..#++++++++#....",
+        "..#+##+++++#....",
+        "..#+#++++++#....",
+        "..#++++++++#....",
+        "..#++++++++#....",
+        "...#++++++##....",
+        "....#######.....",
+        "..........###...",
+        "...........###..",
+        "............###.",
+        ".............##.",
+        "................",
+        "................",
     ],
-    # two agent heads wired to one index (the how-it-works motif, small)
-    "agents": [
-        "SSSSS..SSSSS",
-        "SDMDS..SDGDS",
-        "SMMMS..SGGGS",
-        "SMDMS..SGDGS",
-        "SSSSS..SSSSS",
-        "..G......G..",
-        "..G......G..",
-        "...GG..GG...",
-        "....SSSS....",
-        "....SDDS....",
-        "....SDDS....",
-        "....SSSS....",
+    "bot": [
+        "................",
+        ".......##.......",
+        ".......##.......",
+        "...##########...",
+        "..#++++++++++#..",
+        "..#+##++++##+#..",
+        "..#+##++++##+#..",
+        "..#++++++++++#..",
+        "..#+++####+++#..",
+        "..#++++++++++#..",
+        "...##########...",
+        ".....#....#.....",
+        "....###..###....",
+        "................",
+        "................",
+        "................",
     ],
-    # privacy icons, 12 x 12 (drawn on the dark band)
-    "lock": [
-        "....SSSS....",
-        "...S....S...",
-        "..S......S..",
-        "..S......S..",
-        ".SSSSSSSSSS.",
-        ".SGGGGGGGGS.",
-        ".SGGGMMGGGS.",
-        ".SGGGMMGGGS.",
-        ".SGGGGMGGGS.",
-        ".SGGGGGGGGS.",
-        ".SSSSSSSSSS.",
-        "............",
+    "server": [
+        "................",
+        ".##############.",
+        ".#++++++++++++#.",
+        ".#+####+++##++#.",
+        ".#++++++++++++#.",
+        ".##############.",
+        ".#++++++++++++#.",
+        ".#+####+++##++#.",
+        ".#++++++++++++#.",
+        ".##############.",
+        ".#++++++++++++#.",
+        ".#+####+++##++#.",
+        ".#++++++++++++#.",
+        ".##############.",
+        "..##........##..",
+        "................",
+    ],
+    "devices": [
+        "................",
+        "................",
+        ".########.......",
+        ".#++++++#.......",
+        ".#++++++#.......",
+        ".#++++++#..#####",
+        ".#++++++#..#+++#",
+        ".#++++++#..#+++#",
+        ".########..#+++#",
+        "##########.#+++#",
+        "...........#+++#",
+        "...........#####",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    "house": [
+        "................",
+        ".......##.......",
+        "......####......",
+        ".....##++##.....",
+        "....##++++##....",
+        "...##++++++##...",
+        "..##++++++++##..",
+        ".##############.",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..#+++####+++#..",
+        "..#+++#..#+++#..",
+        "..#+++#..#+++#..",
+        "..############..",
+        "................",
+        "................",
     ],
     "key": [
-        "............",
-        "............",
-        "............",
-        "..SSSS......",
-        ".S....S.....",
-        ".S.GG.SSSSSS",
-        ".S.GG.S..S.S",
-        ".S....S..S.S",
-        "..SSSS......",
-        "............",
-        "............",
-        "............",
+        "................",
+        "................",
+        "................",
+        "................",
+        "..###...........",
+        ".#+++#..........",
+        "#++.++#.........",
+        "#+...+##########",
+        "#++.++##########",
+        ".#+++#....##.##.",
+        "..###.....##.##.",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
     ],
-    "code": [
-        "............",
-        "........GG..",
-        "...S....G...",
-        "..S....GG.S.",
-        ".S.....G...S",
-        "S.....GG....",
-        ".S....G....S",
-        "..S..GG...S.",
-        "...S.G......",
-        ".....G......",
-        "............",
-        "............",
+    "lock": [
+        "................",
+        ".....######.....",
+        "....##....##....",
+        "....#......#....",
+        "....#......#....",
+        "....#......#....",
+        "..############..",
+        "..#++++++++++#..",
+        "..#++++##++++#..",
+        "..#++++##++++#..",
+        "..#+++++#++++#..",
+        "..#++++++++++#..",
+        "..#++++++++++#..",
+        "..############..",
+        "................",
+        "................",
     ],
-    # roadmap marks, 9 x 9
-    "done": [
-        "GGGGGGGGG",
-        "GGGGGGGGG",
-        "GGGGGGSSG",
-        "GGGGGSSGG",
-        "GSSGSSGGG",
-        "GGSSSGGGG",
-        "GGGSGGGGG",
-        "GGGGGGGGG",
-        "GGGGGGGGG",
+    "terminal": [
+        "................",
+        "................",
+        ".##############.",
+        ".##############.",
+        ".#++++++++++++#.",
+        ".#+#++++++++++#.",
+        ".#++#+++++++++#.",
+        ".#+++#++++++++#.",
+        ".#++#+++++++++#.",
+        ".#+#+++####+++#.",
+        ".#++++++++++++#.",
+        ".##############.",
+        "................",
+        "................",
+        "................",
+        "................",
     ],
-    "next": [
-        "D.D.D.D.D",
-        ".........",
-        "D.......D",
-        ".........",
-        "D.......D",
-        ".........",
-        "D.......D",
-        ".........",
-        "D.D.D.D.D",
+    "branch": [
+        "................",
+        "..####....####..",
+        "..#++#....#++#..",
+        "..#++#....#++#..",
+        "..####....####..",
+        "...##......##...",
+        "...##......##...",
+        "...##.....##....",
+        "...##....##.....",
+        "...##..##.......",
+        "...####.........",
+        "...##...........",
+        "..####..........",
+        "..#++#..........",
+        "..#++#..........",
+        "..####..........",
     ],
-    # how-it-works nodes, 28 x 20
+    "scale": [
+        "................",
+        ".......##.......",
+        ".##############.",
+        ".#.....##.....#.",
+        ".#.....##.....#.",
+        "#.#....##....#.#",
+        "#.#....##....#.#",
+        "#####..##..#####",
+        "#+++#..##..#+++#",
+        ".###...##...###.",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        ".....######.....",
+        "....########....",
+        "................",
+    ],
+    "bell": [
+        "................",
+        ".......##.......",
+        ".....######.....",
+        "....#++++++#....",
+        "...#++++++++#...",
+        "...#++++++++#...",
+        "...#++++++++#...",
+        "...#++++++++#...",
+        "..#++++++++++#..",
+        ".#++++++++++++#.",
+        ".##############.",
+        "......####......",
+        ".......##.......",
+        "................",
+        "................",
+        "................",
+    ],
+    "book": [
+        "................",
+        "................",
+        ".####......####.",
+        "#++++##..##++++#",
+        "#++++++##++++++#",
+        "#+###++##++###+#",
+        "#++++++##++++++#",
+        "#+###++##++###+#",
+        "#++++++##++++++#",
+        "#+###++##++###+#",
+        "#++++++##++++++#",
+        "#####++##++#####",
+        ".....######.....",
+        "................",
+        "................",
+        "................",
+    ],
+    "sun": [
+        "................",
+        ".......##.......",
+        ".......##.......",
+        "...#........#...",
+        "................",
+        "......####......",
+        ".....#++++#.....",
+        ".##..#++++#..##.",
+        ".##..#++++#..##.",
+        ".....#++++#.....",
+        "......####......",
+        "................",
+        "...#........#...",
+        ".......##.......",
+        ".......##.......",
+        "................",
+    ],
+    "moon": [
+        "................",
+        "................",
+        "....##..........",
+        "...#+#..........",
+        "..#++#..........",
+        ".#++#...........",
+        ".#++#...........",
+        ".#+++#..........",
+        ".#+++#..........",
+        ".#++++#......#..",
+        "..#++++#######..",
+        "..#+++++++++#...",
+        "...##+++++##....",
+        ".....#####......",
+        "................",
+        "................",
+    ],
+    "arrowup": [
+        "................",
+        "................",
+        ".......##.......",
+        "......####......",
+        ".....######.....",
+        "....########....",
+        "...###.##.###...",
+        "..###..##..###..",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        ".......##.......",
+        "................",
+        "................",
+    ],
+    "broom": [
+        "..............##",
+        ".............##.",
+        "............##..",
+        "...........##...",
+        "..........##....",
+        ".........##.....",
+        "......#####.....",
+        ".....#+++##.....",
+        "....#++++#......",
+        "...#++++#.......",
+        "..#+#+#+#.......",
+        ".#+#+#+#........",
+        "#+#+#+#.........",
+        "#######.........",
+        "................",
+        "................",
+    ],
+}
+
+# how-it-works nodes, drawn larger. Letters map to theme variables (see NODE_VARS).
+NODES = {
     "node_device": [
         "............................",
         "............................",
@@ -278,23 +794,92 @@ SPRITES = {
         "....................",
     ],
 }
+NODE_VARS = {
+    "S": "var(--art-line,#2F3E46)",
+    "M": "var(--art-fill,#CAD2C5)",
+    "G": "var(--art-a1,#84A98C)",
+    "D": "var(--art-a2,#52796F)",
+    "P": "var(--art-a3,#354F52)",
+}
 
-# 5 x 9 pixel font for the Open Graph wordmark (rows 0-1 ascender, 7-8 descender)
+# The mascot's head at 16 x 16: favicon, touch icon and the brand mark in the header and footer.
+# Letters follow tools/mascot.py: O line, B body, b shade, S screen, E eye, W glint, M smile,
+# C cheek, D card, d card lines.
+HEAD = [
+    ".....OOOOOO.....",
+    ".....ODDDDO.....",
+    ".....OddddO.....",
+    ".OOOOOOOOOOOOOO.",
+    "OBBBBbbbbbbBBBBO",
+    "OBOOOOOOOOOOOOBO",
+    "OBOSSSSSSSSSSOBO",
+    "OBOSEWSSSSEWSOBO",
+    "OBOSEESSSSEESOBO",
+    "OBOCSSMSSMSSCOBO",
+    "OBOSSSSMMSSSSOBO",
+    "OBOOOOOOOOOOOOBO",
+    "OBBBBBBBBBBBBBBO",
+    "ObbbbbbbbbbbbbbO",
+    ".OOOOOOOOOOOOOO.",
+    "..OOO......OOO..",
+]
+MASCOT_VARS = {
+    "O": ("--m-line", "#2F3E46"),
+    "B": ("--m-body", "#CAD2C5"),
+    "b": ("--m-shade", "#84A98C"),
+    "S": ("--m-screen", "#354F52"),
+    "E": ("--m-eye", "#CAD2C5"),
+    "W": ("--m-glint", "#FFFFFF"),
+    "M": ("--m-smile", "#84A98C"),
+    "C": ("--m-cheek", "#52796F"),
+    "D": ("--m-card", "#84A98C"),
+    "d": ("--m-card2", "#52796F"),
+}
+MASCOT_POSES = ["idle", "blink", "wave", "search", "sleep", "tidy", "tidy2"]
+
+# 5 x 9 pixel font for the Open Graph image (rows 0-1 ascender, 2-6 x-height, 7-8 descender)
 GLYPHS = {
-    "t": [".#...", ".#...", "####.", ".#...", ".#...", ".#...", "..##.", ".....", "....."],
-    "i": ["..#..", ".....", ".##..", "..#..", "..#..", "..#..", ".###.", ".....", "....."],
+    "a": [".....", ".....", ".###.", "....#", ".####", "#...#", ".####", ".....", "....."],
+    "c": [".....", ".....", ".####", "#....", "#....", "#....", ".####", ".....", "....."],
     "d": ["....#", "....#", ".####", "#...#", "#...#", "#...#", ".####", ".....", "....."],
-    "y": [".....", ".....", "#...#", "#...#", "#...#", "#...#", ".####", "....#", ".###."],
-    "-": [".....", ".....", ".....", ".....", ".###.", ".....", ".....", ".....", "....."],
-    "o": [".....", ".....", ".###.", "#...#", "#...#", "#...#", ".###.", ".....", "....."],
-    "n": [".....", ".....", "####.", "#...#", "#...#", "#...#", "#...#", ".....", "....."],
     "e": [".....", ".....", ".###.", "#...#", "#####", "#....", ".###.", ".....", "....."],
+    "f": ["..##.", ".#...", "####.", ".#...", ".#...", ".#...", ".#...", ".....", "....."],
+    "g": [".....", ".....", ".####", "#...#", "#...#", "#...#", ".####", "....#", ".###."],
+    "i": ["..#..", ".....", ".##..", "..#..", "..#..", "..#..", ".###.", ".....", "....."],
+    "l": [".##..", "..#..", "..#..", "..#..", "..#..", "..#..", ".###.", ".....", "....."],
+    "m": [".....", ".....", "##.#.", "#.#.#", "#.#.#", "#.#.#", "#.#.#", ".....", "....."],
+    "n": [".....", ".....", "####.", "#...#", "#...#", "#...#", "#...#", ".....", "....."],
+    "o": [".....", ".....", ".###.", "#...#", "#...#", "#...#", ".###.", ".....", "....."],
+    "p": [".....", ".....", "####.", "#...#", "#...#", "#...#", "####.", "#....", "#...."],
+    "r": [".....", ".....", "#.##.", "##..#", "#....", "#....", "#....", ".....", "....."],
+    "s": [".....", ".....", ".####", "#....", ".###.", "....#", "####.", ".....", "....."],
+    "t": [".#...", ".#...", "####.", ".#...", ".#...", ".#...", "..##.", ".....", "....."],
+    "u": [".....", ".....", "#...#", "#...#", "#...#", "#...#", ".####", ".....", "....."],
+    "v": [".....", ".....", "#...#", "#...#", "#...#", ".#.#.", "..#..", ".....", "....."],
+    "y": [".....", ".....", "#...#", "#...#", "#...#", "#...#", ".####", "....#", ".###."],
+    "A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#", ".....", "....."],
+    "I": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "#####", ".....", "....."],
+    "-": [".....", ".....", ".....", ".....", ".###.", ".....", ".....", ".....", "....."],
+    ",": [".....", ".....", ".....", ".....", ".....", ".##..", ".##..", "..#..", ".#..."],
+    ".": [".....", ".....", ".....", ".....", ".....", ".##..", ".##..", ".....", "....."],
+    " ": [".....", ".....", ".....", ".....", ".....", ".....", ".....", ".....", "....."],
 }
 
 
-def sprite_paths(rows, palette):
-    """Merge each colour's horizontal runs into one compact SVG path."""
-    runs = {}
+def check_bitmaps():
+    for name, rows in ICONS.items():
+        if len(rows) != 16 or any(len(r) != 16 for r in rows):
+            sys.exit("icon %s is not 16 x 16" % name)
+    for name, rows in NODES.items():
+        if any(len(r) != len(rows[0]) for r in rows):
+            sys.exit("node %s has ragged rows" % name)
+    if len(HEAD) != 16 or any(len(r) != 16 for r in HEAD):
+        sys.exit("HEAD is not 16 x 16")
+
+
+def runs(rows):
+    """Horizontal runs per character: {ch: [(x, y, w), ...]}."""
+    out = {}
     for y, row in enumerate(rows):
         x = 0
         while x < len(row):
@@ -305,32 +890,159 @@ def sprite_paths(rows, palette):
             start = x
             while x < len(row) and row[x] == ch:
                 x += 1
-            runs.setdefault(ch, []).append("M%d %dh%dv1h-%dz" % (start, y, x - start, x - start))
-    out = []
-    for ch, parts in runs.items():
-        out.append('<path fill="%s" d="%s"/>' % (palette[ch], "".join(parts)))
-    return "".join(out)
+            out.setdefault(ch, []).append((start, y, x - start))
+    return out
 
 
-def sprite_svg(name, scale, cls="px", dark=False):
-    rows = SPRITES[name]
-    h, w = len(rows), len(rows[0])
-    pal = ON_DARK if dark else PALETTE
+def run_path(parts):
+    return "".join("M%d %dh%dv1h-%dz" % (x, y, w, w) for x, y, w in parts)
+
+
+def style_fill(value):
+    # Fills go in a style attribute: custom properties in it resolve wherever the <use> is.
+    return 'style="fill:%s"' % value
+
+
+# ---------------------------------------------------------------- sprite
+def icon_def(name):
+    r = runs(ICONS[name])
+    parts = []
+    if "#" in r:
+        parts.append('<path fill="currentColor" d="%s"/>' % run_path(r["#"]))
+    if "+" in r:
+        parts.append('<path %s d="%s"/>' % (style_fill("var(--icon-accent,#84A98C)"), run_path(r["+"])))
+    return '<g id="i-%s">%s</g>' % (name, "".join(parts))
+
+
+RECT = re.compile(
+    r'<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)" fill="var\((--m-[\w-]+),\s*(#[0-9A-Fa-f]{6})\)"\s*/>'
+)
+
+
+def read_mascot(pose):
+    """Parse a generated mascot SVG into {(var, fallback): [(x, y, w, h), ...]} in source order."""
+    text = (MASCOT_DIR / ("mascot-%s.svg" % pose)).read_text(encoding="utf-8")
+    rects = RECT.findall(text)
+    if not rects or len(rects) != text.count("<rect"):
+        sys.exit("mascot-%s.svg: unexpected markup (regenerate it with tools/mascot.py)" % pose)
+    out = {}
+    for x, y, w, h, var, hexv in rects:
+        out.setdefault((var, hexv.upper()), []).append((int(x), int(y), int(w), int(h)))
+    return out
+
+
+def mascot_def(pose):
+    parts = []
+    for (var, hexv), rects in read_mascot(pose).items():
+        d = "".join("M%d %dh%dv%dh-%dz" % (x, y, w, h, w) for x, y, w, h in rects)
+        parts.append('<path %s d="%s"/>' % (style_fill("var(%s,%s)" % (var, hexv)), d))
+    return '<g id="m-%s">%s</g>' % (pose, "".join(parts))
+
+
+def head_def():
+    parts = []
+    for ch, rr in runs(HEAD).items():
+        var, hexv = MASCOT_VARS[ch]
+        parts.append('<path %s d="%s"/>' % (style_fill("var(%s,%s)" % (var, hexv)), run_path(rr)))
+    return '<g id="m-head">%s</g>' % "".join(parts)
+
+
+def sprite():
+    defs = [icon_def(n) for n in ICONS] + [mascot_def(p) for p in MASCOT_POSES] + [head_def()]
     return (
-        '<svg class="%s" viewBox="0 0 %d %d" width="%d" height="%d" aria-hidden="true" '
-        'focusable="false" shape-rendering="crispEdges">%s</svg>'
-        % (cls, w, h, w * scale, h * scale, sprite_paths(rows, pal))
+        '<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" '
+        'shape-rendering="crispEdges"><defs>%s</defs></svg>' % "".join(defs)
     )
 
 
+def icon(name, cls=""):
+    if name not in ICONS:
+        sys.exit("unknown icon %r" % name)
+    return (
+        '<svg class="ic%s" viewBox="0 0 16 16" aria-hidden="true" focusable="false" '
+        'shape-rendering="crispEdges"><use href="#i-%s"/></svg>' % ((" " + cls) if cls else "", name)
+    )
+
+
+def mascot(pose, cls=""):
+    # 40 x 32 crops the four empty rows under the feet; the broom's bristles (row 32) may poke
+    # out below (overflow is visible), so the feet stand on whatever line the mascot sits on.
+    return (
+        '<svg class="mascot%s" viewBox="0 0 40 32" aria-hidden="true" focusable="false" '
+        'shape-rendering="crispEdges"><use href="#m-%s"/></svg>' % ((" " + cls) if cls else "", pose)
+    )
+
+
+def head(cls=""):
+    return (
+        '<svg class="head%s" viewBox="0 0 16 16" aria-hidden="true" focusable="false" '
+        'shape-rendering="crispEdges"><use href="#m-head"/></svg>' % ((" " + cls) if cls else "")
+    )
+
+
+def node_svg(name):
+    rows = NODES[name]
+    h, w = len(rows), len(rows[0])
+    paths = "".join(
+        '<path %s d="%s"/>' % (style_fill(NODE_VARS[ch]), run_path(rr)) for ch, rr in runs(rows).items()
+    )
+    return (
+        '<svg class="node" viewBox="0 0 %d %d" width="%d" height="%d" aria-hidden="true" '
+        'focusable="false" shape-rendering="crispEdges">%s</svg>' % (w, h, w * 4, h * 4, paths)
+    )
+
+
+# ---------------------------------------------------------------- client logos
+LOGO_SVG = re.compile(r"^\s*<svg\b[^>]*\bviewBox=\"0 0 24 24\"[^>]*>(.*)</svg>\s*$", re.S)
+
+
+def logo_svg(rel):
+    path = SRC / "assets" / rel
+    text = path.read_text(encoding="utf-8")
+    m = LOGO_SVG.match(text)
+    if not m:
+        sys.exit("%s: expected one 24 x 24 <svg>" % rel)
+    inner = m.group(1).strip()
+    if re.search(r"<script|<foreignObject|\son\w+\s*=|href\s*=", inner, re.I):
+        sys.exit("%s: unexpected content" % rel)
+    if 'fill="currentColor"' not in inner:
+        sys.exit("%s: the path should use fill=\"currentColor\"" % rel)
+    return '<svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">%s</svg>' % inner
+
+
+def client_items(clients):
+    out = []
+    for c in clients:
+        name, url, logo = c["name"], c["url"], c.get("logo") or ""
+        if not re.match(r"^https://", url):
+            sys.exit("clients.json: %s needs an https URL" % name)
+        if logo:
+            mark = '<span class="client-mark">%s</span>' % logo_svg(logo)
+            cls = "client"
+        else:
+            # no logo file: the name itself is set as a wordmark in the logo's place
+            mark = '<span class="client-mark client-word" aria-hidden="true">%s</span>' % esc(name)
+            cls = "client client-text"
+        out.append(
+            '<li class="%s"><a href="%s" rel="noopener">%s<span class="client-name">%s</span></a></li>'
+            % (cls, esc(url), mark, esc(name))
+        )
+    return "".join(out)
+
+
+# ---------------------------------------------------------------- favicon
 def favicon_svg():
-    # 16 x 16 slate tile with stepped corners, the mark re-inked in light tones
-    tile = "M1 0h14v1h1v14h-1v1H1v-1H0V1h1z"
-    pal = {"S": "#CAD2C5", "P": "#CAD2C5", "D": "#84A98C", "G": "#84A98C"}
-    inner = sprite_paths(SPRITES["mark"], pal)
+    """The mascot's head; outline and screen switch to lighter tones on a dark browser theme."""
+    classes = {"O": "o", "B": "b", "b": "s", "S": "sc", "E": "e", "W": "w", "M": "m", "C": "c", "D": "d", "d": "d2"}
+    paths = "".join('<path class="%s" d="%s"/>' % (classes[ch], run_path(rr)) for ch, rr in runs(HEAD).items())
+    css = (
+        ".o{fill:#2F3E46}.b{fill:#CAD2C5}.s{fill:#84A98C}.sc{fill:#354F52}.e{fill:#CAD2C5}.w{fill:#fff}"
+        ".m{fill:#84A98C}.c{fill:#52796F}.d{fill:#84A98C}.d2{fill:#52796F}"
+        "@media (prefers-color-scheme:dark){.o{fill:#84A98C}.s{fill:#52796F}.sc{fill:#1E2A2F}.d{fill:#CAD2C5}.d2{fill:#52796F}}"
+    )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">'
-        '<path fill="#2F3E46" d="%s"/><g transform="translate(2 2)">%s</g></svg>\n' % (tile, inner)
+        "<style>%s</style>%s</svg>\n" % (css, paths)
     )
 
 
@@ -374,9 +1086,29 @@ class Raster:
             i = (yy * self.w + x0) * 3
             self.buf[i:i + len(line)] = line
 
+    def mascot(self, pose, ox, oy, unit):
+        for (_var, hexv), rects in read_mascot(pose).items():
+            for x, y, w, h in rects:
+                self.rect(ox + x * unit, oy + y * unit, w * unit, h * unit, hexv)
 
-BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
-TONES = ["#2F3E46", "#354F52", "#52796F", "#84A98C", "#CAD2C5"]
+    def text(self, s, ox, oy, unit, color, gap=1):
+        """Pixel font, set proportionally: each font pixel is a unit x unit square; returns the width."""
+        x = ox
+        for ch in s:
+            g = GLYPHS[ch]
+            lo, hi = glyph_span(ch)
+            for gy, line in enumerate(g):
+                for gx, c in enumerate(line):
+                    if c == "#":
+                        self.rect(x + (gx - lo) * unit, oy + gy * unit, unit, unit, color)
+            x += (hi - lo + 1 + gap) * unit
+        return x - ox - gap * unit
+
+
+def glyph_span(ch):
+    """First and last inked column of a glyph (a space is three columns wide)."""
+    cols = [i for i in range(5) if any(row[i] == "#" for row in GLYPHS[ch])]
+    return (min(cols), max(cols)) if cols else (0, 2)
 
 
 class Rng:
@@ -389,67 +1121,41 @@ class Rng:
 
 
 def draw_og(path):
-    """1200 x 630: scattered pixels on the left settle into an ordered grid on the right."""
-    import math
+    """1200 x 630: the wordmark and tagline on the left; on the right the mascot, standing on a
+    mist floor, has swept most pixels into a tidy stack and is reaching for the last few."""
+    W, H = 1200, 630
+    img = Raster(W, H, PALETTE["paper"])
+    floor = 512
+    img.rect(0, floor, W, 2, PALETTE["mist"])
+    img.rect(0, floor + 2, W, H - floor - 2, PALETTE["paper2"])
 
-    W, H, cell, sq = 1200, 630, 15, 12
-    img = Raster(W, H, "#F8F9F7")
-    cols, rows = W // cell, H // cell  # 80 x 42
-    rnd = Rng(11)
-    field_rows = 22
-    taken = set()
-    cells = []
-    for y in range(field_rows):
-        for x in range(cols):
-            u, v = x / (cols - 1), y / (field_rows - 1)
-            b = (BAYER4[(y & 3) * 4 + (x & 3)] + 0.5) / 16
-            dens = 1.08 - v * 0.95 + 0.06 * math.sin(u * 7.0)
-            if dens <= b:
-                continue
-            tone = min(4.99, max(0.0, (0.15 + 0.75 * (1 - u) + 0.35 * v) * 5 - 0.6 + (b - 0.5) * 1.1))
-            cells.append((x, y, int(tone)))
-    for x, y, t in cells:
-        u = x / (cols - 1)
-        mess = max(0.0, 1.0 - u * 1.55) ** 1.3  # 1 at the left edge, 0 from ~65%
-        if mess > 0:
-            if rnd() < mess * 0.55:
-                continue  # dissolved
-            ang = math.sin(x * 0.21 + y * 0.17) * 2.4 + rnd() * 2.0
-            mag = mess * (2 + rnd() * 9)
-            x = int(round(x + math.cos(ang) * mag))
-            y = int(round(y + abs(math.sin(ang)) * mag * 0.9 + rnd() * mess * 6))
-        if 0 <= x < cols and 0 <= y < rows - 16 and (x, y) not in taken:
-            taken.add((x, y))
-            img.rect(x * cell + 2, y * cell + 2, sq, sq, TONES[t])
+    # wordmark + tagline
+    x0, y0 = 72, 168
+    img.text("tidy-one", x0, y0, 17, PALETTE["slate"])
+    tu, ty = 5, y0 + 9 * 17 + 48
+    img.text("one tidy, private memory", x0, ty, tu, PALETTE["pine"])
+    img.text("for all your AI agents.", x0, ty + 11 * tu + 4, tu, PALETTE["pine"])
 
-    # wordmark: each font pixel is one grid cell
-    word = "tidy-one"
-    ox, oy = 4, rows - 14
-    for i, ch in enumerate(word):
-        g = GLYPHS[ch]
-        for gy, line in enumerate(g):
-            for gx, c in enumerate(line):
-                if c == "#":
-                    img.rect((ox + i * 6 + gx) * cell + 2, (oy + gy) * cell + 2, sq, sq, "#2F3E46")
-    # the mark, bottom right, one cell per pixel
-    mark = SPRITES["mark"]
-    mx, my = cols - 4 - 12, rows - 16
-    for gy, line in enumerate(mark):
-        for gx, c in enumerate(line):
-            if c != ".":
-                img.rect((mx + gx) * cell + 2, (my + gy) * cell + 2, sq, sq, PALETTE[c])
+    # the mascot, 8 px per art pixel, feet on the floor line (the feet end at row 32)
+    mu = 8
+    mx, my = 812, floor - 32 * mu
+    img.mascot("tidy", mx, my, mu)
+
+    # the last loose pixels, to the right of the broom
+    loose = [(1146, floor - 22, 14, "deep"), (1166, floor - 44, 12, "sage"), (1180, floor - 14, 12, "pine"),
+             (1156, floor - 70, 10, "sage"), (1184, floor - 58, 8, "deep")]
+    for x, y, size, tone in loose:
+        img.rect(x, y, size, size, PALETTE[tone])
     write_png(path, W, H, img.buf)
 
 
 def draw_touch_icon(path):
-    size, unit = 180, 10
-    img = Raster(size, size, "#2F3E46")
-    pal = {"S": "#CAD2C5", "P": "#CAD2C5", "D": "#84A98C", "G": "#84A98C"}
-    off = (size - 12 * unit) // 2
-    for gy, line in enumerate(SPRITES["mark"]):
-        for gx, c in enumerate(line):
-            if c != ".":
-                img.rect(off + gx * unit, off + gy * unit, unit, unit, pal[c])
+    size = 180
+    img = Raster(size, size, PALETTE["paper2"])
+    unit = 4  # 40 x 36 art at 4x = 160 x 144; the feet end at row 32, so centre rows 3..32
+    ox = (size - 40 * unit) // 2
+    oy = (size - 30 * unit) // 2 - 3 * unit
+    img.mascot("idle", ox, oy, unit)
     write_png(path, size, size, img.buf)
 
 
@@ -488,22 +1194,8 @@ def phrase_html(s):
 
     sentences = s.split("||")
     if len(sentences) == 1:
-        out = phrases(s)
-    else:
-        out = "".join(wrap(sen, "sen", phrases) for sen in sentences)
-    return trim_end_punct(out)
-
-
-# Full-width punctuation that closes a display line (Chinese 。，、！？：；).
-END_PUNCT = re.compile("([\u3001\u3002\uff01\uff0c\uff1a\uff1b\uff1f])((?:</span>)*)$")
-
-
-def trim_end_punct(markup):
-    """Mark a heading's final full-width stop so CSS can set it half width ("halt").
-
-    The span goes inside the innermost wrapper, so nothing can break before the stop.
-    """
-    return END_PUNCT.sub(r'<span class="pe">\1</span>\2', markup)
+        return phrases(s)
+    return "".join(wrap(sen, "sen", phrases) for sen in sentences)
 
 
 FILTERS = {"ph": phrase_html}
@@ -521,7 +1213,7 @@ def lookup(ctx, dotted):
     return cur
 
 
-def render(template, ctx, lang):
+def render(template, ctx):
     missing = []
 
     def sub(m):
@@ -532,113 +1224,59 @@ def render(template, ctx, lang):
             missing.append(key)
             return ""
         if not isinstance(val, str):
-            raise TypeError("%s: {{ %s }} is not a string" % (lang, key))
+            raise TypeError("{{ %s }} is not a string" % key)
         if raw:
             return val
         if flt:
             if flt not in FILTERS:
-                sys.exit("[%s] unknown filter '%s' on {{ %s }}" % (lang, flt, key))
+                sys.exit("unknown filter '%s' on {{ %s }}" % (flt, key))
             return FILTERS[flt](val)
         return html.escape(plain(val), quote=True)
 
     out = TOKEN.sub(sub, template)
     if missing:
-        sys.exit("[%s] missing keys: %s" % (lang, ", ".join(sorted(set(missing)))))
+        sys.exit("missing keys: %s" % ", ".join(sorted(set(missing))))
     return out
-
-
-def flatten_keys(d, prefix=""):
-    keys = set()
-    for k, v in d.items():
-        p = prefix + k
-        if isinstance(v, dict):
-            keys |= flatten_keys(v, p + ".")
-        else:
-            keys.add(p)
-    return keys
 
 
 def esc(s):
     return html.escape(s, quote=True)
 
 
-def page_url(out_dir):
+def page_url(out_dir=""):
     return SITE_BASE_URL + "/" + out_dir
 
 
-def build_context(code, out_dir, html_lang, copy, all_copy, version):
-    root = "../" if out_dir else ""
+def build_context(copy, clients, version):
     ctx = dict(copy)
 
-    # hreflang + og:locale alternates
-    alt = []
-    for c, d, _hl, hreflang in LANGS:
-        alt.append('<link rel="alternate" hreflang="%s" href="%s">' % (hreflang, page_url(d)))
-    alt.append('<link rel="alternate" hreflang="x-default" href="%s">' % page_url(""))
-    og_alt = "".join(
-        '<meta property="og:locale:alternate" content="%s">' % all_copy[c]["meta"]["locale"]
-        for c, *_ in LANGS
-        if c != code
+    # Inter Tight only (no monospace anywhere). Font CSS never blocks first paint: preload,
+    # switch to a stylesheet on load, noscript fallback.
+    font_url = esc("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap")
+    fonts = (
+        '<link rel="preload" as="style" href="%s" onload="this.onload=null;this.rel=\'stylesheet\'">'
+        '<noscript><link rel="stylesheet" href="%s"></noscript>' % (font_url, font_url)
     )
 
-    # language switcher (relative links, work on any host or sub-path).
-    # The accessible name starts with the visible code ("KO 한국어") so speech input can use it.
-    links = []
-    for c, d, hl, _ in LANGS:
-        href = (root + d) or "./"
-        cur = ' aria-current="page"' if c == code else ""
-        name = copy["nav"]["lang_" + c]
-        label = "%s %s" % (SWITCH_LABEL[c], name)
-        links.append(
-            '<a href="%s" hreflang="%s" lang="%s" data-lang="%s" title="%s" aria-label="%s"%s>%s</a>'
-            % (href, hl, hl, c, esc(name), esc(label), cur, SWITCH_LABEL[c])
+    def chips(items):
+        return '<ul class="chips">%s</ul>' % "".join(
+            '<li class="chip">%s<span>%s</span></li>' % (icon(i), esc(label)) for i, label in items
         )
-
-    # fonts: Inter Tight + JetBrains Mono everywhere, Pretendard for ko. Chinese uses the system
-    # CJK fonts (PingFang SC, Microsoft YaHei, Noto Sans CJK SC) instead of ~1 MB of web fonts.
-    # Font CSS never blocks first paint: preload, switch to a stylesheet on load, noscript fallback.
-    def font_css(url):
-        u = esc(url)
-        return (
-            '<link rel="preload" as="style" href="%s" onload="this.onload=null;this.rel=\'stylesheet\'">'
-            '<noscript><link rel="stylesheet" href="%s"></noscript>' % (u, u)
-        )
-
-    families = "family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500"
-    fonts = [font_css("https://fonts.googleapis.com/css2?%s&display=swap" % families)]
-    if code == "ko":
-        fonts.insert(0, '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>')
-        fonts.append(
-            font_css(
-                "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/"
-                "dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-            )
-        )
-
-    def list_items(items, cls):
-        return "".join('<li class="%s">%s</li>' % (cls, esc(i)) for i in items)
 
     def road_items(items, mark):
-        icon = sprite_svg(mark, 2, "px road-mark")
-        return "".join("<li>%s<span>%s</span></li>" % (icon, esc(i)) for i in items)
+        out = []
+        for names, text in items:
+            topic = "".join(icon(n, "topic") for n in names.split())
+            out.append(
+                '<li>%s<span class="road-topics">%s</span><span class="road-text">%s</span></li>'
+                % (icon(mark, "road-mark"), topic, esc(text))
+            )
+        return "".join(out)
 
-    # first-visit language suggestion (only rendered on the Korean root page)
-    suggest = {}
-    for c, d, hl, _ in LANGS:
-        suggest[c] = {
-            "href": d,
-            "lang": hl,
-            "label": all_copy[c]["nav"]["language"],
-            "name": all_copy[c]["nav"]["lang_" + c],
-        }
-
-    # game: 12 slots in a 4 x 3 grid, coloured by diagonal so the tidy result is the hero's
-    # slate-to-sage gradient (sage only on the last diagonals)
-    by_diagonal = ["#2F3E46", "#2F3E46", "#354F52", "#52796F", "#84A98C", "#84A98C"]
-    slots = []
-    for i in range(12):
-        x, y = i % 4, i // 4
-        slots.append('<li class="slot" data-c="%s"></li>' % by_diagonal[x + y])
+    # game: 12 slots in a 4 x 3 grid, toned by diagonal so the tidy result runs from the
+    # darkest tone to sage, like the hero field (tones are theme variables, see site.css)
+    by_diagonal = [0, 0, 1, 2, 3, 3]
+    slots = "".join('<li class="slot" data-t="%d"></li>' % by_diagonal[i % 4 + i // 4] for i in range(12))
 
     json_ld = {
         "@context": "https://schema.org",
@@ -648,61 +1286,64 @@ def build_context(code, out_dir, html_lang, copy, all_copy, version):
         "codeRepository": REPO_URL,
         "license": "https://opensource.org/licenses/MIT",
         "programmingLanguage": "Python",
-        "inLanguage": html_lang,
+        "inLanguage": "en",
         "author": {"@type": "Person", "name": "Junwon Kim"},
-        "url": page_url(out_dir),
+        "url": page_url(),
     }
 
+    feats = copy["features"]
     ctx["_"] = {
-        "html_lang": html_lang,
-        "root": root,
         "home": "./",
         "repo": REPO_URL,
         "releases": REPO_URL + "/releases",
-        "canonical": page_url(out_dir),
+        "license": REPO_URL + "/blob/main/LICENSE",
+        "readme": REPO_URL + "#readme",
+        "canonical": page_url(),
         "og_image": SITE_BASE_URL + "/assets/og.png",
-        "hreflang": "\n".join(alt),
-        "og_locale_alternates": og_alt,
-        "font_links": "\n".join(fonts),
-        "lang_links": "".join(links),
+        "font_links": fonts,
         "version": version,
-        "h1_sep": "" if code == "zh" else " ",
-        "logo": sprite_svg("mark", 2, "px brand-mark"),
-        "mark_small": sprite_svg("mark", 2, "px"),
-        "icon_devices": sprite_svg("devices", 4),
-        "icon_formats": sprite_svg("formats", 4),
-        "icon_search": sprite_svg("search", 4),
-        "icon_agents": sprite_svg("agents", 4),
-        "icon_lock": sprite_svg("lock", 4, dark=True),
-        "icon_key": sprite_svg("key", 4, dark=True),
-        "icon_code": sprite_svg("code", 4, dark=True),
-        "node_device": sprite_svg("node_device", 4, "px node"),
-        "node_server": sprite_svg("node_server", 4, "px node"),
-        "node_agents": sprite_svg("node_agents", 4, "px node"),
-        "works_items": list_items(copy["works_with"]["items"], "tool"),
-        "done_items": road_items(copy["status"]["done"], "done"),
-        "next_items": road_items(copy["status"]["next"], "next"),
-        "game_slots": "".join(slots),
+        "sprite": sprite(),
+        "ic": {n: icon(n) for n in ICONS},
+        "m": {p: mascot(p) for p in MASCOT_POSES},
+        "head": head(),
+        "node_device": node_svg("node_device"),
+        "node_server": node_svg("node_server"),
+        "node_agents": node_svg("node_agents"),
+        "device_chips": chips(feats["devices"]["chips"]),
+        "format_chips": chips(feats["formats"]["chips"]),
+        "clients": client_items(clients),
+        "done_items": road_items(copy["status"]["done"], "check"),
+        "next_items": road_items(copy["status"]["next"], "hourglass"),
+        "game_slots": slots,
         "game_total": "12",
-        "suggest_json": json.dumps(suggest, ensure_ascii=False).replace("</", "<\\/"),
         "json_ld": json.dumps(json_ld, ensure_ascii=False).replace("</", "<\\/"),
-        "is_root": "true" if code == "ko" else "false",
-        "code": code,
     }
     return ctx
 
 
-def main():
-    template = (SRC / "template.html").read_text(encoding="utf-8")
-    all_copy = {}
-    for code, *_ in LANGS:
-        all_copy[code] = json.loads((I18N / ("%s.json" % code)).read_text(encoding="utf-8"))
+REDIRECT = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tidy-one</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="%(canonical)s">
+<meta http-equiv="refresh" content="0; url=../">
+<script>window.location.replace("../" + window.location.hash);</script>
+</head>
+<body>
+<p><a href="../">tidy-one</a></p>
+</body>
+</html>
+"""
 
-    base_keys = flatten_keys(all_copy["ko"])
-    for code in all_copy:
-        diff = base_keys ^ flatten_keys(all_copy[code])
-        if diff:
-            sys.exit("i18n/%s.json keys differ from ko.json: %s" % (code, ", ".join(sorted(diff))))
+
+def main():
+    check_bitmaps()
+    template = (SRC / "template.html").read_text(encoding="utf-8")
+    copy = json.loads(COPY_FILE.read_text(encoding="utf-8"))
+    clients = json.loads(CLIENTS_FILE.read_text(encoding="utf-8"))
 
     # generated art lives in src/assets (deterministic, so rebuilding causes no diff)
     assets = SRC / "assets"
@@ -720,28 +1361,25 @@ def main():
         h.update((SRC / "assets" / name).read_bytes())
     version = h.hexdigest()[:8]
 
-    for code, out_dir, html_lang, _ in LANGS:
-        ctx = build_context(code, out_dir, html_lang, all_copy[code], all_copy, version)
-        out = render(template, ctx, code)
-        target = DIST / out_dir / "index.html"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(out, encoding="utf-8")
-        print("wrote %s (%d bytes)" % (target.relative_to(ROOT), len(out.encode("utf-8"))))
+    out = render(template, build_context(copy, clients, version))
+    target = DIST / "index.html"
+    target.write_text(out, encoding="utf-8")
+    print("wrote %s (%d bytes)" % (target.relative_to(ROOT), len(out.encode("utf-8"))))
+
+    # the old language pages keep working: they send visitors (and their #section) to the page
+    for old in OLD_PAGES:
+        stub = DIST / old / "index.html"
+        stub.parent.mkdir(parents=True, exist_ok=True)
+        stub.write_text(REDIRECT % {"canonical": esc(page_url())}, encoding="utf-8")
+        print("wrote %s (redirect to ../)" % stub.relative_to(ROOT))
 
     # GitHub Pages niceties
     (DIST / ".nojekyll").write_text("", encoding="utf-8")
     (DIST / "robots.txt").write_text("User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\n" % SITE_BASE_URL, encoding="utf-8")
-    urls = []
-    for _c, d, _hl, _ in LANGS:
-        alts = "".join(
-            '\n    <xhtml:link rel="alternate" hreflang="%s" href="%s"/>' % (hl2, page_url(d2))
-            for _c2, d2, _h2, hl2 in LANGS
-        )
-        urls.append("  <url>\n    <loc>%s</loc>%s\n  </url>" % (page_url(d), alts))
     (DIST / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
-        'xmlns:xhtml="http://www.w3.org/1999/xhtml">\n%s\n</urlset>\n' % "\n".join(urls),
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        "  <url>\n    <loc>%s</loc>\n  </url>\n</urlset>\n" % page_url(),
         encoding="utf-8",
     )
     print("done -> %s" % DIST.relative_to(ROOT))

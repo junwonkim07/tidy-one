@@ -1,12 +1,19 @@
-/* tidy-one site: language memory, menu, hero pixel field, footer game. No dependencies. */
+/* tidy-one site: theme, menu, hero pixel field and mascot, footer game. No dependencies. */
 (function () {
   "use strict";
 
   var doc = document;
   var root = doc.documentElement;
-  var page = root.getAttribute("data-page") || "ko";
-  var STORE = "tidy-one:lang";
-  var reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+  var THEME_KEY = "tidy-one:theme";
+  function query(q) {
+    return window.matchMedia ? window.matchMedia(q) : { matches: false };
+  }
+  function listen(mq, fn) {
+    if (mq.addEventListener) mq.addEventListener("change", fn);
+    else if (mq.addListener) mq.addListener(fn);
+  }
+  var reduceMotion = query("(prefers-reduced-motion: reduce)");
+  var darkQuery = query("(prefers-color-scheme: dark)");
 
   function store(key, value) {
     try {
@@ -18,69 +25,56 @@
     return null;
   }
 
-  /* ---------------------------------------------------------- language */
-  function initLanguage() {
-    // Section ids are the same on every page, so the switcher keeps the reader's place.
-    var links = doc.querySelectorAll("[data-lang]");
-    for (var i = 0; i < links.length; i++) {
-      links[i].addEventListener("click", function () {
-        store(STORE, this.getAttribute("data-lang"));
-        var base = (this.getAttribute("href") || "").split("#")[0];
-        if (window.location.hash) this.setAttribute("href", base + window.location.hash);
+  /* ---------------------------------------------------------- theme
+     The system preference is the default; the toggle overrides it and remembers the choice.
+     The inline script in <head> applies a stored choice before the first paint. */
+  var themeListeners = [];
+  function onTheme(fn) { themeListeners.push(fn); }
+  function currentTheme() {
+    var t = root.getAttribute("data-theme");
+    if (t === "light" || t === "dark") return t;
+    return darkQuery.matches ? "dark" : "light";
+  }
+
+  function initTheme() {
+    var btn = doc.getElementById("theme-toggle");
+    var metas = doc.querySelectorAll('meta[name="theme-color"]');
+    for (var i = 0; i < metas.length; i++) {
+      metas[i].setAttribute("data-media", metas[i].getAttribute("media") || "");
+      metas[i].setAttribute("data-content", metas[i].getAttribute("content") || "");
+    }
+    function sync() {
+      var dark = currentTheme() === "dark";
+      if (btn) btn.setAttribute("aria-pressed", dark ? "true" : "false");
+      // an explicit choice colours the browser chrome too
+      var explicit = root.hasAttribute("data-theme");
+      for (var k = 0; k < metas.length; k++) {
+        var m = metas[k];
+        if (explicit) {
+          m.removeAttribute("media");
+          m.setAttribute("content", dark ? "#1E2A2F" : "#F8F9F7");
+        } else {
+          if (m.getAttribute("data-media")) m.setAttribute("media", m.getAttribute("data-media"));
+          m.setAttribute("content", m.getAttribute("data-content"));
+        }
+      }
+    }
+    function changed() {
+      sync();
+      for (var k = 0; k < themeListeners.length; k++) themeListeners[k]();
+    }
+    if (btn) {
+      btn.addEventListener("click", function () {
+        var next = currentTheme() === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        store(THEME_KEY, next);
+        changed();
       });
     }
-
-    // First visit to the Korean root: suggest (never force) another language.
-    if (page !== "ko" || store(STORE)) return;
-    var bar = doc.getElementById("lang-suggest");
-    var dataEl = doc.getElementById("lang-data");
-    if (!bar || !dataEl) return;
-    var data;
-    try { data = JSON.parse(dataEl.textContent); } catch (e) { return; }
-
-    var prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""]);
-    var first = String(prefs[0] || "").toLowerCase();
-    if (!first || first.indexOf("ko") === 0) return;
-    var want = first.indexOf("zh") === 0 ? "zh" : "en";
-    var t = data[want];
-    var ko = data.ko;
-    if (!t || !ko) return;
-
-    var label = doc.createElement("span");
-    label.className = "label";
-    label.lang = t.lang;
-    label.textContent = t.label;
-
-    var go = doc.createElement("a");
-    go.href = t.href + window.location.hash;
-    go.lang = t.lang;
-    go.hreflang = t.lang;
-    go.textContent = t.name + " →";
-    go.addEventListener("click", function () { store(STORE, want); });
-
-    var stay = doc.createElement("button");
-    stay.type = "button";
-    stay.lang = ko.lang;
-    stay.textContent = ko.name;
-    stay.addEventListener("click", function () {
-      store(STORE, "ko");
-      bar.hidden = true;
-      // keep keyboard users near where they were: the current language in the visible switcher
-      var cur = doc.querySelectorAll('.lang-switch a[aria-current="page"]');
-      for (var k = 0; k < cur.length; k++) {
-        if (cur[k].offsetParent !== null) { cur[k].focus(); return; }
-      }
-      var brand = doc.querySelector(".brand");
-      if (brand) brand.focus();
+    listen(darkQuery, function () {
+      if (!root.hasAttribute("data-theme")) changed();
     });
-
-    bar.setAttribute("role", "region");
-    bar.setAttribute("aria-label", t.label);
-    bar.lang = t.lang; // the region is named in the suggested language, so say which
-    bar.appendChild(label);
-    bar.appendChild(go);
-    bar.appendChild(stay);
-    bar.hidden = false;
+    sync();
   }
 
   /* ---------------------------------------------------------- menu */
@@ -106,31 +100,156 @@
     });
   }
 
+  /* ---------------------------------------------------------- mascot poses */
+  function poser(box) {
+    var use = box && box.querySelector("use");
+    var cur = use ? (use.getAttribute("href") || "").replace("#m-", "") : "";
+    return function (pose) {
+      if (!use || pose === cur) return;
+      cur = pose;
+      use.setAttribute("href", "#m-" + pose);
+    };
+  }
+
+  /* The hero mascot: idle, blinking now and then (a few blinks, then it rests until the reader
+     does something), waving while the reader points at it or at a call to action, and sweeping
+     while the field tidies (two broom frames swapped by scroll progress, sliding a few art
+     pixels). No blinking or sliding with reduced motion. */
+  function initHeroMascot() {
+    var box = doc.getElementById("hero-mascot");
+    if (!box) return null;
+    var setPose = poser(box);
+    var svg = box.querySelector("svg");
+    var state = { wave: 0, blink: false, sweep: 0 };
+    var MAX_BLINKS = 4;
+    var blinks = 0, blinkTimer = 0, openTimer = 0, visible = true, mpx = 4;
+
+    function render() {
+      setPose(state.wave ? "wave" : state.sweep === 1 ? "tidy" : state.sweep === 2 ? "tidy2" : state.blink ? "blink" : "idle");
+    }
+    function measure() {
+      var w = svg ? svg.getBoundingClientRect().width : 0;
+      mpx = w ? Math.round(w / 40) || 1 : 4;
+    }
+
+    function scheduleBlink() {
+      window.clearTimeout(blinkTimer);
+      blinkTimer = 0;
+      if (reduceMotion.matches || !visible || doc.hidden || blinks >= MAX_BLINKS) return;
+      blinkTimer = window.setTimeout(function () {
+        blinkTimer = 0;
+        blinks++;
+        state.blink = true;
+        render();
+        openTimer = window.setTimeout(function () {
+          state.blink = false;
+          render();
+          scheduleBlink();
+        }, 150);
+      }, 2400 + Math.random() * 2600);
+    }
+    function wake() {
+      if (blinks >= MAX_BLINKS || !blinkTimer) {
+        if (blinks >= MAX_BLINKS) blinks = 0;
+        if (!blinkTimer && !state.blink) scheduleBlink();
+      }
+    }
+
+    // wave: each source (pointer on the mascot, pointer on or focus in the calls to action)
+    function waveFrom(on) {
+      state.wave = Math.max(0, state.wave + (on ? 1 : -1));
+      render();
+    }
+    function hoverable(el) {
+      var inside = false;
+      el.addEventListener("pointerenter", function () { if (!inside) { inside = true; waveFrom(true); } });
+      el.addEventListener("pointerleave", function () { if (inside) { inside = false; waveFrom(false); } });
+    }
+    hoverable(box);
+    var ctas = doc.querySelectorAll(".hero .cta-row a");
+    for (var i = 0; i < ctas.length; i++) {
+      hoverable(ctas[i]);
+      ctas[i].addEventListener("focus", function () { waveFrom(true); });
+      ctas[i].addEventListener("blur", function () { waveFrom(false); });
+    }
+
+    doc.addEventListener("visibilitychange", function () {
+      if (doc.hidden) { window.clearTimeout(blinkTimer); blinkTimer = 0; }
+      else wake();
+    });
+    var hero = box.closest(".hero");
+    if (hero) hero.addEventListener("pointermove", wake, { passive: true });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        visible = entries[0].isIntersecting;
+        if (visible) wake();
+        else { window.clearTimeout(blinkTimer); blinkTimer = 0; }
+      }).observe(box);
+    }
+    listen(reduceMotion, function () {
+      if (reduceMotion.matches) {
+        window.clearTimeout(blinkTimer);
+        window.clearTimeout(openTimer);
+        blinkTimer = 0;
+        state.blink = false;
+        state.sweep = 0;
+        box.style.removeProperty("--sweep");
+        render();
+      } else {
+        wake();
+      }
+    });
+    if ("ResizeObserver" in window) new ResizeObserver(measure).observe(box);
+    measure();
+    scheduleBlink();
+
+    return {
+      // P: the field's tidy progress, 0 (scattered) to 1 (tidy)
+      progress: function (P) {
+        if (reduceMotion.matches) return;
+        state.sweep = P > 0.015 && P < 0.985 ? 1 + (Math.floor(P * 36) % 2) : 0;
+        box.style.setProperty("--sweep", -Math.round(P * 10) * mpx + "px");
+        render();
+        wake();
+      }
+    };
+  }
+
   /* ---------------------------------------------------------- hero pixel field
      Scattered: pixels hang from the hairline in loose clouds with ragged, dissolving edges,
      slightly off the grid and slightly smaller. Scrolling tidies them in a wave from left to
-     right: each pixel travels to its own cell and clicks into place, filling 3 x 3 tiles (the
-     mark's pattern) sorted from slate to mist. The tiles fill the whole field, centred with an
-     even margin, so the tidy end state has no empty band. The loop runs only while something
-     moves: while the field catches up with the scroll, plus a slow, short drift (~10 fps,
-     under 5 s) after load or a scroll, then it sleeps. */
-  function initField() {
+     right: each pixel travels to its own cell and clicks into place, filling 3 x 3 tiles sorted
+     from the darkest tone to mist. A soft bloom sits under the pixels: they are drawn once more,
+     larger, into a canvas at a fifth of the size, blurred there, and scaled up with smoothing.
+     Colours come from CSS custom properties and are read again when the theme changes.
+     The loop runs only while something moves: while the field catches up with the scroll, plus
+     a slow, short drift (~10 fps, under 5 s) after load or a scroll, then it sleeps. */
+  function initField(mascot) {
     var canvas = doc.getElementById("tidy-grid");
     if (!canvas || !canvas.getContext) return;
     var ctx = canvas.getContext("2d");
     if (!ctx) return;
     var hero = canvas.closest(".hero") || root;
 
-    var TONES = ["#2F3E46", "#354F52", "#52796F", "#84A98C", "#CAD2C5"];
     var TONE_STEPS = [0.22, 0.42, 0.62, 0.82];
     var DUR = 0.32;       // share of the scroll range one pixel spends travelling
     var WAVE = 0.62;      // pixels set off in a wave from left to right over this share
     var SNAP = 0.9;       // point of the trip where a pixel clicks into its cell
     var DRIFT_MS = 4800;  // idle drift after load or the last scroll (under 5 s, WCAG 2.2.2)
     var FADE_MS = 1500;   // the drift eases out over this long before the loop sleeps
+    var GLOW_SCALE = 5;   // CSS pixels per glow pixel
+    // how strongly each tone blooms (darkest first): on paper a sage haze, strongest around
+    // the deep and sage pixels (mist ones are faint already); on dark the light pixels glow
+    // in their own tone
+    var GLOW_LIGHT = [0.6, 0.75, 1, 0.8, 0.3];
+    var GLOW_DARK = [0.1, 0.25, 0.5, 0.6, 0.65];
+
+    var colors = { tones: ["#2F3E46", "#354F52", "#52796F", "#84A98C", "#CAD2C5"], empty: "rgba(202,210,197,.32)",
+      glow: "#84A98C", glowAlpha: 0.42, blend: "source-over", weights: GLOW_LIGHT };
 
     var W = 0, H = 0, dpr = 1, cell = 12, gap = 2, cols = 0, rows = 0, ox = 0;
-    var px = [], bg = null;
+    var px = [], bg = null, XS, YS, SS, AS;
+    var glow = null, glowCtx = null, blur = null, blurCtx = null, gw = 0, gh = 0;
     var P = 0, target = 0, visible = true, raf = 0, timer = 0, last = 0, idleUntil = 0, tidyOut = "";
 
     var seed = 1;
@@ -145,6 +264,32 @@
       var c = 0;
       while (c < TONE_STEPS.length && t > TONE_STEPS[c]) c++;
       return c;
+    }
+
+    function readColors() {
+      var cs = window.getComputedStyle(root);
+      function v(name, fallback) { return (cs.getPropertyValue(name) || "").trim() || fallback; }
+      for (var i = 0; i < 5; i++) colors.tones[i] = v("--px-" + i, colors.tones[i]);
+      colors.empty = v("--px-empty", colors.empty);
+      colors.glow = v("--px-glow", "#84A98C");
+      colors.glowAlpha = parseFloat(v("--px-glow-alpha", "0.4")) || 0;
+      colors.blend = v("--px-glow-blend", "source-over");
+      colors.weights = colors.glow === "tone" ? GLOW_DARK : GLOW_LIGHT;
+    }
+
+    function paintGrid() {
+      // faint empty grid, drawn once per size or theme
+      bg = bg || doc.createElement("canvas");
+      bg.width = canvas.width;
+      bg.height = canvas.height;
+      var g = bg.getContext("2d");
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, bg.width, bg.height);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.fillStyle = colors.empty;
+      for (var yy = 0; yy < rows; yy++) {
+        for (var xx = 0; xx < cols; xx++) g.fillRect(ox + xx * cell, yy * cell, cell - gap, cell - gap);
+      }
     }
 
     function build() {
@@ -165,8 +310,7 @@
       ox = Math.round((W - (cols * cell - gap)) / 2);
       seed = 20261010;
 
-      // 1. tidy end state: 3 x 3 tiles with one-cell gutters filling the field, with the same
-      //    one- or two-cell margin on opposite sides
+      // 1. tidy end state: 3 x 3 tiles with one-cell gutters filling the field
       var ntx = Math.max(1, Math.floor((cols - 1) / 4));
       var nty = Math.max(1, Math.floor((rows - 1) / 4));
       var tx0 = (cols - (ntx * 4 - 1)) / 2;
@@ -183,10 +327,8 @@
       }
       var n = homes.length;
 
-      // 2. scattered start: clouds hanging from the top edge with a ragged lower edge,
-      //    open pockets inside and a thin trail of pixels dissolving below. The clouds hang
-      //    lower until they hold about 1.6 candidate cells per pixel, so picking the strongest
-      //    cells still leaves pockets and a ragged edge.
+      // 2. scattered start: clouds hanging from the top edge with a ragged lower edge, open
+      //    pockets inside and a thin trail of pixels dissolving below
       var spots = [], base = 0.47;
       for (var tries = 0; tries < 12; tries++) {
         spots = [];
@@ -219,39 +361,82 @@
         var d = clamp(sp.dens, 0, 1);
         px.push({
           hx: h.hx, hy: h.hy, c: h.c,
-          sx: sp.x + (rand() - 0.5) * 0.6,            // off the grid by a fraction of a cell
+          sx: sp.x + (rand() - 0.5) * 0.6,
           sy: sp.y + (rand() - 0.5) * 0.6,
-          sz: 0.6 + 0.3 * d + 0.08 * rand(),           // a little smaller while scattered
-          a: 0.45 + 0.55 * Math.min(1, d * 1.6),       // faint at the dissolving edges
-          // tidying sweeps across: the block fills from the left while the right still drifts
+          sz: 0.6 + 0.3 * d + 0.08 * rand(),
+          a: 0.45 + 0.55 * Math.min(1, d * 1.6),
           d: WAVE * (0.82 * h.hx / Math.max(1, cols) + 0.18 * rand()),
           ph: rand() * 6.283, sp: 0.7 + rand() * 0.6
         });
       }
       px.sort(function (a, b) { return a.c - b.c; });
+      XS = new Float32Array(n);
+      YS = new Float32Array(n);
+      SS = new Float32Array(n);
+      AS = new Float32Array(n);
 
-      // faint empty grid, drawn once
-      bg = doc.createElement("canvas");
-      bg.width = canvas.width;
-      bg.height = canvas.height;
-      var g = bg.getContext("2d");
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.fillStyle = "rgba(202, 210, 197, 0.32)";
-      for (var yy = 0; yy < rows; yy++) {
-        for (var xx = 0; xx < cols; xx++) g.fillRect(ox + xx * cell, yy * cell, cell - gap, cell - gap);
+      // bloom buffers at a fifth of the size (the blur runs there, so it costs next to nothing)
+      gw = Math.max(1, Math.ceil(W / GLOW_SCALE));
+      gh = Math.max(1, Math.ceil(H / GLOW_SCALE));
+      glow = glow || doc.createElement("canvas");
+      glow.width = gw;
+      glow.height = gh;
+      glowCtx = glow.getContext("2d");
+      if (glowCtx && "filter" in glowCtx) {
+        blur = blur || doc.createElement("canvas");
+        blur.width = gw;
+        blur.height = gh;
+        blurCtx = blur.getContext("2d");
+        if (blurCtx) blurCtx.filter = "blur(1.6px)";
       }
+      paintGrid();
+    }
+
+    function drawGlow(n) {
+      if (!glowCtx || colors.glowAlpha <= 0) return;
+      var g = glowCtx;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalAlpha = 1;
+      g.clearRect(0, 0, gw, gh);
+      g.setTransform(gw / W, 0, 0, gh / H, 0, 0);
+      var tone = colors.glow === "tone";
+      if (!tone) g.fillStyle = colors.glow;
+      var pad = cell * 0.3, lastC = -1, lastA = -1;
+      for (var i = 0; i < n; i++) {
+        if (SS[i] <= 0) continue;
+        var c = px[i].c;
+        var a = Math.round(colors.weights[c] * AS[i] * 10) / 10;
+        if (a <= 0) continue;
+        if (a !== lastA) { g.globalAlpha = a; lastA = a; }
+        if (tone && c !== lastC) { g.fillStyle = colors.tones[c]; lastC = c; }
+        g.fillRect(XS[i] - pad, YS[i] - pad, SS[i] + pad * 2, SS[i] + pad * 2);
+      }
+      var src = glow;
+      if (blurCtx) {
+        blurCtx.clearRect(0, 0, gw, gh);
+        blurCtx.drawImage(glow, 0, 0);
+        src = blur;
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = colors.blend === "lighter" ? "lighter" : "source-over";
+      ctx.globalAlpha = colors.glowAlpha;
+      ctx.imageSmoothingEnabled = true;
+      if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(src, 0, 0, gw, gh, 0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
     }
 
     function draw(now, live) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (bg) ctx.drawImage(bg, 0, 0);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       var still = reduceMotion.matches;
       var s = cell - gap;
       var amp = still ? 0 : 0.22 * live;
-      var lastColor = -1, lastAlpha = -1;
-      for (var i = 0; i < px.length; i++) {
+      var n = px.length;
+      // positions first: the bloom and the pixels use the same ones
+      for (var i = 0; i < n; i++) {
         var p = px[i];
         var lp = still ? 1 : clamp((P - p.d) / DUR, 0, 1);
         var X, Y, size, a = 1;
@@ -275,18 +460,31 @@
           size = Math.round(size * dpr) / dpr;
           a = p.a + (1 - p.a) * e;
         }
-        if (X >= W || Y >= H || X + size <= 0 || Y + size <= 0) continue;
-        a = Math.round(a * 10) / 10;
-        if (a !== lastAlpha) { ctx.globalAlpha = a; lastAlpha = a; }
-        if (p.c !== lastColor) { ctx.fillStyle = TONES[p.c]; lastColor = p.c; }
-        ctx.fillRect(X, Y, size, size);
+        var off = X >= W || Y >= H || X + size <= 0 || Y + size <= 0;
+        XS[i] = X;
+        YS[i] = Y;
+        SS[i] = off ? 0 : size;
+        AS[i] = Math.round(a * 10) / 10;
+      }
+      drawGlow(n);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var lastColor = -1, lastAlpha = -1;
+      for (var k = 0; k < n; k++) {
+        if (SS[k] <= 0) continue;
+        if (AS[k] !== lastAlpha) { ctx.globalAlpha = AS[k]; lastAlpha = AS[k]; }
+        if (px[k].c !== lastColor) { ctx.fillStyle = colors.tones[px[k].c]; lastColor = px[k].c; }
+        ctx.fillRect(XS[k], YS[k], SS[k], SS[k]);
       }
       ctx.globalAlpha = 1;
     }
 
     function setTidy() {
       var v = P.toFixed(2);
-      if (v !== tidyOut) { tidyOut = v; hero.style.setProperty("--tidy", v); }
+      if (v !== tidyOut) {
+        tidyOut = v;
+        hero.style.setProperty("--tidy", v);
+        if (mascot) mascot.progress(P);
+      }
     }
 
     function measure() {
@@ -341,6 +539,7 @@
       draw(0, 0);
     }
 
+    readColors();
     build();
     if (reduceMotion.matches) {
       drawStill();
@@ -359,6 +558,13 @@
       idleUntil = performance.now() + DRIFT_MS;
       kick();
     }, { passive: true });
+
+    // new colours: repaint the grid and the frame as it is (no new motion)
+    onTheme(function () {
+      readColors();
+      paintGrid();
+      draw(performance.now(), reduceMotion.matches ? 0 : clamp((idleUntil - performance.now()) / FADE_MS, 0, 1));
+    });
 
     var resizeTimer = 0;
     function onResize() {
@@ -384,7 +590,7 @@
       }).observe(canvas);
     }
 
-    var onMotion = function () {
+    listen(reduceMotion, function () {
       stop();
       if (reduceMotion.matches) { drawStill(); return; }
       measure();
@@ -392,11 +598,13 @@
       idleUntil = performance.now() + DRIFT_MS;
       draw(performance.now(), 1);
       kick();
-    };
-    if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", onMotion);
+    });
   }
 
-  /* ---------------------------------------------------------- footer game */
+  /* ---------------------------------------------------------- footer game
+     Twelve pixel buttons scattered over a field; each click, tap or Enter/Space sends one to its
+     slot. "Scatter again" (after a win, or the scatter button at any time) puts every piece back
+     into the field at fresh random, non-overlapping spots and resets the count. */
   function initGame() {
     var game = doc.getElementById("game");
     var field = doc.getElementById("game-field");
@@ -409,12 +617,15 @@
     var doneEl = doc.getElementById("game-done");
     var liveEl = doc.getElementById("game-live");
     var resetBtn = doc.getElementById("game-reset");
+    var scatterBtn = doc.getElementById("game-scatter");
+    var setHost = poser(doc.getElementById("game-host"));
     var pieceName = game.getAttribute("data-piece") || "{n}";
     var doneText = game.getAttribute("data-done") || "";
     var total = slots.length;
+    var SIZE = 34, ROW = 44;
     var score = 0;
     var buttons = [];
-    var doneTimer = 0;
+    var doneTimer = 0, hostTimer = 0;
 
     function pad(n) { return (n < 10 ? "0" : "") + n; }
     function animates() { return !reduceMotion.matches && !!board.animate; }
@@ -422,6 +633,10 @@
     // FLIP: measure, change the layout, then animate every element from where it was
     function flip(els, mutate) {
       var first = els.map(function (el) { return el.getBoundingClientRect(); });
+      // a new move starts from where things are now; drop any trip still under way
+      els.forEach(function (el) {
+        if (el.getAnimations) el.getAnimations().forEach(function (a) { a.cancel(); });
+      });
       mutate();
       if (!animates()) return;
       els.forEach(function (el, k) {
@@ -435,23 +650,51 @@
       });
     }
 
-    function spots(n) {
-      // spread n points over the field without overlaps
-      var out = [];
-      var fw = field.clientWidth, fh = field.clientHeight;
-      var size = 34, tries = 0;
-      while (out.length < n && tries < 2000) {
-        tries++;
-        var x = Math.random() * Math.max(1, fw - size);
-        var y = Math.random() * Math.max(1, fh - size);
-        var ok = true;
-        for (var k = 0; k < out.length; k++) {
-          if (Math.abs(out[k][0] - x) < size + 10 && Math.abs(out[k][1] - y) < size + 10) { ok = false; break; }
-        }
-        if (ok) out.push([x, y]);
+    function shuffle(list) {
+      for (var i = list.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = list[i]; list[i] = list[j]; list[j] = t;
       }
-      while (out.length < n) out.push([Math.random() * (fw - size), Math.random() * (fh - size)]);
-      return out.map(function (p) { return [p[0] / fw * 100, p[1] / fh * 100, p[0], p[1]]; });
+      return list;
+    }
+
+    // n non-overlapping spots: shuffle the cells of a coarse grid over the field and jitter
+    // each piece inside its own cell. Measured on the visible field (the caller makes sure).
+    function spots(n) {
+      var fw = field.clientWidth || field.getBoundingClientRect().width;
+      var fh = field.clientHeight || field.getBoundingClientRect().height;
+      var out = [];
+      if (fw < SIZE || fh < SIZE) {
+        for (var z = 0; z < n; z++) out.push([Math.random() * 90, Math.random() * 80, 0, z * ROW]);
+        return out;
+      }
+      var cw = SIZE + 12, ch = SIZE + 10;
+      var cols = Math.max(1, Math.floor(fw / cw)), rows = Math.max(1, Math.floor(fh / ch));
+      var cells = [];
+      for (var c = 0; c < cols * rows; c++) cells.push(c);
+      shuffle(cells);
+      var sx = fw / cols, sy = fh / rows;
+      for (var i = 0; i < n; i++) {
+        var x, y;
+        if (i < cells.length) {
+          var cx = cells[i] % cols, cy = Math.floor(cells[i] / cols);
+          x = cx * sx + Math.random() * Math.max(0, sx - SIZE);
+          y = cy * sy + Math.random() * Math.max(0, sy - SIZE);
+        } else {
+          x = Math.random() * (fw - SIZE);
+          y = Math.random() * (fh - SIZE);
+        }
+        x = Math.min(x, fw - SIZE);
+        y = Math.min(y, fh - SIZE);
+        out.push([x / fw * 100, y / fh * 100, x, y]);
+      }
+      return out;
+    }
+
+    function hostPose(pose, ms) {
+      window.clearTimeout(hostTimer);
+      setHost(pose);
+      if (ms) hostTimer = window.setTimeout(function () { setHost(game.classList.contains("is-done") ? "wave" : "idle"); }, ms);
     }
 
     function setDone(done) {
@@ -464,11 +707,13 @@
           doneEl.hidden = false;
         });
         liveEl.textContent = doneText;
+        hostPose("wave");
       } else {
         game.classList.remove("is-done");
         doneEl.hidden = true;
         stage.style.minHeight = "";
         liveEl.textContent = "";
+        hostPose("idle");
       }
     }
 
@@ -478,6 +723,7 @@
       window.clearTimeout(doneTimer);
       // let the last pixel land before the board moves; the reset button exists only then
       doneTimer = window.setTimeout(function () {
+        doneTimer = 0;
         setDone(true);
         // unless the reader has moved on meanwhile, focus goes from the game to the reset button
         var at = doc.activeElement;
@@ -486,7 +732,7 @@
     }
 
     function place(btn) {
-      if (btn.classList.contains("is-placed")) return;
+      if (btn.classList.contains("is-placed") || btn.disabled) return;
       var hadFocus = doc.activeElement === btn;
       var i = +btn.getAttribute("data-i");
       flip([btn], function () {
@@ -501,35 +747,40 @@
       if (hadFocus) (next || game).focus({ preventScroll: true });
       btn.disabled = true;
       score++;
+      if (score < total && !reduceMotion.matches) hostPose("tidy", 320);
       render(hadFocus && !next);
     }
 
     function scatter(initial) {
       window.clearTimeout(doneTimer);
-      var pos = spots(total);
-      var order = buttons.slice().sort(function () { return Math.random() - 0.5; });
-      var spot = {};
-      order.forEach(function (btn, k) { spot[btn.getAttribute("data-i")] = pos[k]; });
-      // DOM (and tab) order follows the visual order: rows of the field top to bottom, then left to right
-      var row = 44;
-      var sorted = order.slice().sort(function (a, b) {
-        var pa = spot[a.getAttribute("data-i")], pb = spot[b.getAttribute("data-i")];
-        return (Math.floor(pa[3] / row) - Math.floor(pb[3] / row)) || (pa[2] - pb[2]);
-      });
+      doneTimer = 0;
+      var all = buttons.slice();
       var move = function () {
+        // The field is hidden while the board shows "All tidy", so it must be visible again
+        // before it is measured: measuring a hidden field gave every piece a NaN position and
+        // they all piled up in its corner.
         setDone(false);
+        var pos = spots(total);
+        var order = shuffle(all.slice());
+        var spot = {};
+        order.forEach(function (btn, k) { spot[btn.getAttribute("data-i")] = pos[k]; });
+        // DOM (and tab) order follows the visual order: rows of the field top to bottom, then left to right
+        var sorted = order.slice().sort(function (a, b) {
+          var pa = spot[a.getAttribute("data-i")], pb = spot[b.getAttribute("data-i")];
+          return (Math.floor(pa[3] / ROW) - Math.floor(pb[3] / ROW)) || (pa[2] - pb[2]);
+        });
         sorted.forEach(function (btn) {
           var p = spot[btn.getAttribute("data-i")];
           btn.classList.remove("is-placed");
           btn.disabled = false;
-          btn.style.left = p[0] + "%";
-          btn.style.top = p[1] + "%";
+          btn.style.left = p[0].toFixed(3) + "%";
+          btn.style.top = p[1].toFixed(3) + "%";
           field.appendChild(btn);
         });
+        buttons = sorted;
       };
       if (initial) move();
-      else flip(sorted.concat([board]), move);
-      buttons = sorted;
+      else flip(all.concat([board]), move);
       score = 0;
       scoreEl.textContent = pad(score);
     }
@@ -540,18 +791,20 @@
       b.className = "gpx";
       b.setAttribute("data-i", String(i));
       b.setAttribute("aria-label", pieceName.replace("{n}", String(i + 1)));
-      b.setAttribute("data-c", slots[i].getAttribute("data-c")); // light pieces get an edge (CSS)
-      b.style.setProperty("--c", slots[i].getAttribute("data-c"));
+      b.setAttribute("data-t", slots[i].getAttribute("data-t"));
       b.style.setProperty("--i", String(i));
       b.addEventListener("click", function () { place(this); });
       buttons.push(b);
     }
     scatter(true);
 
+    // after a win the reset button disappears with the board, so focus goes to the first piece
     resetBtn.addEventListener("click", function () {
       scatter(false);
       if (buttons[0]) buttons[0].focus({ preventScroll: true });
     });
+    // the scatter button stays where it is, so it keeps focus
+    if (scatterBtn) scatterBtn.addEventListener("click", function () { scatter(false); });
   }
 
   /* ---------------------------------------------------------- how-it-works packets
@@ -567,9 +820,9 @@
   }
 
   function start() {
-    initLanguage();
+    initTheme();
     initMenu();
-    initField();
+    initField(initHeroMascot());
     initGame();
     initPackets();
   }

@@ -1,24 +1,23 @@
 <!doctype html>
-<html lang="{{ _.html_lang }}" dir="ltr" data-page="{{ _.code }}">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ meta.title }}</title>
 <meta name="description" content="{{ meta.description }}">
 <link rel="canonical" href="{{ _.canonical }}">
-{{{ _.hreflang }}}
-<meta name="theme-color" content="#F8F9F7">
-<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F8F9F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1E2A2F" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="author" content="Junwon Kim">
-<link rel="icon" href="{{ _.root }}assets/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="{{ _.root }}assets/apple-touch-icon.png">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="tidy-one">
 <meta property="og:title" content="{{ meta.og_title }}">
 <meta property="og:description" content="{{ meta.og_description }}">
 <meta property="og:url" content="{{ _.canonical }}">
-<meta property="og:locale" content="{{ meta.locale }}">
-{{{ _.og_locale_alternates }}}
+<meta property="og:locale" content="en_US">
 <meta property="og:image" content="{{ _.og_image }}">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
@@ -30,46 +29,46 @@
 <meta name="twitter:image" content="{{ _.og_image }}">
 <meta name="twitter:image:alt" content="{{ meta.og_image_alt }}">
 <script>
-  // A choice made with the language switcher wins over the default Korean root.
+  // Apply a stored light/dark choice before the first paint (no flash of the wrong theme).
   (function () {
-    document.documentElement.classList.add("js");
-    if (!{{ _.is_root }}) return;
+    var d = document.documentElement;
+    d.classList.add("js");
     try {
-      var l = window.localStorage.getItem("tidy-one:lang");
-      if (l === "en" || l === "zh") window.location.replace(l + "/" + window.location.hash);
+      var t = window.localStorage.getItem("tidy-one:theme");
+      if (t === "light" || t === "dark") d.setAttribute("data-theme", t);
     } catch (e) {}
   })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 {{{ _.font_links }}}
-<link rel="stylesheet" href="{{ _.root }}assets/site.css?v={{ _.version }}">
+<link rel="stylesheet" href="assets/site.css?v={{ _.version }}">
 <script type="application/ld+json">{{{ _.json_ld }}}</script>
 </head>
 <body>
+{{{ _.sprite }}}
 <a class="skip-link" href="#main">{{ nav.skip }}</a>
-
-<div class="lang-suggest" id="lang-suggest" hidden></div>
 
 <header class="site-header" id="top">
   <div class="wrap header-row">
-    <a class="brand" href="{{ _.home }}" aria-label="tidy-one">{{{ _.logo }}}<span aria-hidden="true">tidy-one</span></a>
-    <nav class="lang-switch lang-switch-mobile" aria-label="{{ nav.language }}">{{{ _.lang_links }}}</nav>
+    <a class="brand" href="{{ _.home }}" aria-label="{{ nav.home }}">{{{ _.head }}}<span aria-hidden="true">tidy-one</span></a>
     <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-menu">
       <span class="menu-icon" aria-hidden="true"><i></i><i></i><i></i></span><span class="menu-label">{{ nav.menu }}</span>
     </button>
     <div class="site-menu" id="site-menu">
       <nav class="primary-nav" aria-label="{{ nav.menu }}">
         <ul>
-          <li><a href="#features">{{ nav.features }}</a></li>
-          <li><a href="#how">{{ nav.how }}</a></li>
-          <li><a href="#privacy">{{ nav.privacy }}</a></li>
-          <li><a href="#status">{{ nav.status }}</a></li>
-          <li><a class="nav-gh" href="{{ _.repo }}" rel="noopener">{{ nav.github }}<span class="arrow" aria-hidden="true">↗</span></a></li>
+          <li><a href="#features">{{{ _.ic.grid }}}<span>{{ nav.features }}</span></a></li>
+          <li><a href="#how">{{{ _.ic.flow }}}<span>{{ nav.how }}</span></a></li>
+          <li><a href="#privacy">{{{ _.ic.shield }}}<span>{{ nav.privacy }}</span></a></li>
+          <li><a href="#status">{{{ _.ic.flag }}}<span>{{ nav.status }}</span></a></li>
+          <li><a class="nav-gh" href="{{ _.repo }}" rel="noopener">{{{ _.ic.branch }}}<span>{{ nav.github }}</span><span class="arrow" aria-hidden="true">↗</span></a></li>
         </ul>
       </nav>
     </div>
-    <nav class="lang-switch lang-switch-desktop" aria-label="{{ nav.language }}">{{{ _.lang_links }}}</nav>
+    <button class="icon-btn theme-toggle" type="button" id="theme-toggle" aria-pressed="false" aria-label="{{ nav.theme }}" title="{{ nav.theme_hint }}">
+      <span class="tt-icon tt-moon">{{{ _.ic.moon }}}</span><span class="tt-icon tt-sun">{{{ _.ic.sun }}}</span>
+    </button>
   </div>
 </header>
 
@@ -77,26 +76,21 @@
   <section class="hero" aria-labelledby="hero-title">
     <div class="wrap hero-grid">
       <div class="hero-main">
-        <p class="badge"><span class="badge-dot" aria-hidden="true"></span>{{ hero.eyebrow }}</p>
-        <h1 id="hero-title" class="hero-title"><span>{{ hero.headline_1 | ph }}</span>{{ _.h1_sep }}<span>{{ hero.headline_2 | ph }}</span></h1>
-        <p class="hero-sub">{{ hero.sub | ph }}</p>
+        <p class="badge">{{{ _.ic.hourglass }}}<span>{{ hero.eyebrow }}</span></p>
+        <h1 id="hero-title" class="hero-title"><span>{{ hero.headline_1 | ph }}</span> <span>{{ hero.headline_2 | ph }}</span></h1>
       </div>
       <div class="hero-aside">
         <p class="statement">{{ hero.statement | ph }}</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="{{ _.releases }}" rel="noopener" aria-describedby="cta-hint">{{ hero.cta_primary }}<span class="arrow" aria-hidden="true">↗</span></a>
-          <a class="btn btn-secondary" href="{{ _.repo }}" rel="noopener">{{ hero.cta_secondary }}<span class="arrow" aria-hidden="true">↗</span></a>
+          <a class="btn btn-primary" href="{{ _.releases }}" rel="noopener">{{{ _.ic.bell }}}<span>{{ hero.cta_primary }}</span><span class="arrow" aria-hidden="true">↗</span></a>
+          <a class="btn btn-secondary" href="{{ _.repo }}" rel="noopener">{{{ _.ic.branch }}}<span>{{ hero.cta_secondary }}</span><span class="arrow" aria-hidden="true">↗</span></a>
         </div>
-        <p class="cta-hint" id="cta-hint">{{ hero.cta_primary_hint }}</p>
-        <div class="hero-meta">
-          {{{ _.mark_small }}}
-          <p>{{ hero.meta_line }}</p>
-        </div>
+        <div class="hero-mascot" id="hero-mascot">{{{ _.m.idle }}}</div>
       </div>
     </div>
     <div class="hero-field">
-      <canvas id="tidy-grid" class="tidy-grid" role="img" aria-label="{{ meta.og_image_alt }}"></canvas>
-      <p class="wrap scroll-hint"><svg class="px hint-arrow" viewBox="0 0 5 5" width="10" height="10" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#52796F" d="M2 0h1v2h-1zM0 2h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM1 3h3v1h-3zM2 4h1v1h-1z"/></svg>{{ hero.scroll_hint }}</p>
+      <canvas id="tidy-grid" class="tidy-grid" role="img" aria-label="{{ meta.field_alt }}"></canvas>
+      <p class="wrap scroll-hint"><svg class="hint-arrow" viewBox="0 0 5 5" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="currentColor" d="M2 0h1v2h-1zM0 2h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM1 3h3v1h-3zM2 4h1v1h-1z"/></svg>{{ hero.scroll_hint }}</p>
     </div>
   </section>
 
@@ -104,7 +98,8 @@
     <div class="wrap editorial">
       <div class="ed-head">
         <h2 id="problem-title">{{ problem.heading | ph }}</h2>
-        <p class="label">{{ problem.label }}</p>
+        <p class="label">{{{ _.ic.scatter }}}<span>{{ problem.label }}</span></p>
+        <div class="scattered" aria-hidden="true">{{{ _.ic.mic }}}{{{ _.ic.note }}}{{{ _.ic.folder }}}{{{ _.ic.photo }}}{{{ _.ic.chat }}}{{{ _.ic.bot }}}</div>
       </div>
       <div class="ed-body prose">
         <p>{{ problem.p1 }}</p>
@@ -117,28 +112,34 @@
     <div class="wrap">
       <div class="ed-head ed-head-wide">
         <h2 id="features-title">{{ features.heading | ph }}</h2>
-        <p class="label">{{ features.label }}</p>
+        <p class="label">{{{ _.ic.grid }}}<span>{{ features.label }}</span></p>
       </div>
       <ul class="feature-grid">
         <li class="feature">
-          <div class="feature-icon">{{{ _.icon_devices }}}</div>
+          <div class="feature-icon">{{{ _.ic.devices }}}</div>
           <h3><span class="num-badge" aria-hidden="true">01</span><span class="feature-title">{{ features.devices.title | ph }}</span></h3>
-          <p>{{ features.devices.body }}</p>
+          <div class="feature-body">
+            <p>{{ features.devices.body }}</p>
+            {{{ _.device_chips }}}
+          </div>
         </li>
         <li class="feature">
-          <div class="feature-icon">{{{ _.icon_formats }}}</div>
+          <div class="feature-icon">{{{ _.ic.doc }}}</div>
           <h3><span class="num-badge" aria-hidden="true">02</span><span class="feature-title">{{ features.formats.title | ph }}</span></h3>
-          <p>{{ features.formats.body }}</p>
+          <div class="feature-body">
+            <p>{{ features.formats.body }}</p>
+            {{{ _.format_chips }}}
+          </div>
         </li>
         <li class="feature">
-          <div class="feature-icon">{{{ _.icon_search }}}</div>
+          <div class="feature-icon">{{{ _.ic.search }}}</div>
           <h3><span class="num-badge" aria-hidden="true">03</span><span class="feature-title">{{ features.search.title | ph }}</span></h3>
-          <p>{{ features.search.body }}</p>
+          <div class="feature-body"><p>{{ features.search.body }}</p></div>
         </li>
         <li class="feature">
-          <div class="feature-icon">{{{ _.icon_agents }}}</div>
+          <div class="feature-icon">{{{ _.ic.bot }}}</div>
           <h3><span class="num-badge" aria-hidden="true">04</span><span class="feature-title">{{ features.agents.title | ph }}</span></h3>
-          <p>{{ features.agents.body }}</p>
+          <div class="feature-body"><p>{{ features.agents.body }}</p></div>
         </li>
       </ul>
     </div>
@@ -146,9 +147,12 @@
 
   <section class="section" id="how" aria-labelledby="how-title">
     <div class="wrap">
-      <div class="ed-head ed-head-wide">
-        <h2 id="how-title">{{ how.heading | ph }}</h2>
-        <p class="label">{{ how.label }}</p>
+      <div class="ed-head ed-head-wide has-mascot">
+        <div class="ed-head-text">
+          <h2 id="how-title">{{ how.heading | ph }}</h2>
+          <p class="label">{{{ _.ic.flow }}}<span>{{ how.label }}</span></p>
+        </div>
+        <div class="section-mascot">{{{ _.m.search }}}</div>
       </div>
       <ol class="steps">
         <li class="step">
@@ -183,19 +187,20 @@
     <div class="wrap editorial">
       <div class="ed-head">
         <h2 id="privacy-title">{{ privacy.heading | ph }}</h2>
-        <p class="label">{{ privacy.label }}</p>
+        <p class="label">{{{ _.ic.shield }}}<span>{{ privacy.label }}</span></p>
+        <div class="section-mascot privacy-mascot">{{{ _.m.sleep }}}</div>
       </div>
       <ul class="privacy-list">
         <li>
-          {{{ _.icon_lock }}}
+          <span class="privacy-icon">{{{ _.ic.house }}}</span>
           <div><h3>{{ privacy.originals.title }}</h3><p>{{ privacy.originals.body }}</p></div>
         </li>
         <li>
-          {{{ _.icon_key }}}
+          <span class="privacy-icon">{{{ _.ic.key }}}</span>
           <div><h3>{{ privacy.secrets.title }}</h3><p>{{ privacy.secrets.body }}</p></div>
         </li>
         <li>
-          {{{ _.icon_code }}}
+          <span class="privacy-icon">{{{ _.ic.terminal }}}</span>
           <div><h3>{{ privacy.open.title }}</h3><p>{{ privacy.open.body }}</p></div>
         </li>
       </ul>
@@ -204,9 +209,9 @@
 
   <section class="section works" id="works-with" aria-labelledby="works-title">
     <div class="wrap">
-      <h2 class="label label-heading" id="works-title">{{ works_with.label }}</h2>
-      <ul class="tool-list">{{{ _.works_items }}}</ul>
-      <p class="works-note">{{ works_with.note }}</p>
+      <h2 class="label label-heading" id="works-title">{{{ _.ic.plug }}}<span>{{ works_with.label }}</span></h2>
+      <ul class="client-grid">{{{ _.clients }}}</ul>
+      <p class="works-note">{{{ _.ic.plug }}}<span>{{ works_with.note }}</span></p>
       <p class="fineprint">{{ works_with.disclaimer }}</p>
     </div>
   </section>
@@ -215,16 +220,17 @@
     <div class="wrap editorial">
       <div class="ed-head">
         <h2 id="status-title">{{ status.heading | ph }}</h2>
-        <p class="label">{{ status.label }}</p>
+        <p class="label">{{{ _.ic.flag }}}<span>{{ status.label }}</span></p>
+        <div class="section-mascot status-mascot">{{{ _.m.tidy }}}</div>
       </div>
       <div class="ed-body">
         <div class="roadmap">
           <div class="road-col">
-            <h3 class="road-title">{{ status.done_label }}</h3>
+            <h3 class="road-title">{{{ _.ic.check }}}<span>{{ status.done_label }}</span></h3>
             <ul class="road-list is-done">{{{ _.done_items }}}</ul>
           </div>
           <div class="road-col">
-            <h3 class="road-title">{{ status.next_label }}</h3>
+            <h3 class="road-title">{{{ _.ic.hourglass }}}<span>{{ status.next_label }}</span></h3>
             <ul class="road-list is-next">{{{ _.next_items }}}</ul>
           </div>
         </div>
@@ -232,44 +238,76 @@
       </div>
     </div>
   </section>
-</main>
 
-<footer class="site-footer">
-  <div class="wrap">
-    <div class="game" id="game" tabindex="-1" role="group" aria-labelledby="game-hint" aria-describedby="game-desc" data-piece="{{ game.piece }}" data-done="{{ game.done }}">
-      <div class="game-bar">
-        <p class="label" id="game-hint">{{ game.hint }}</p>
-        <p class="game-score" aria-live="polite" aria-atomic="true"><span id="game-score">00</span><span class="slash">/</span><span>{{ _.game_total }}</span></p>
-      </div>
-      <p class="sr-only" id="game-desc">{{ game.aria }}</p>
-      <p class="sr-only" id="game-live" role="status" aria-live="polite"></p>
-      <div class="game-stage">
-        <div class="game-field" id="game-field"></div>
-        <div class="game-board">
-          <ol class="game-slots" id="game-slots" aria-hidden="true">{{{ _.game_slots }}}</ol>
-          <div class="game-done" id="game-done" hidden>
-            <p>{{ game.done }}</p>
-            <button class="btn btn-secondary btn-sm" type="button" id="game-reset">{{ game.reset }}</button>
+  <div class="section-game">
+    <div class="wrap">
+      <div class="game" id="game" tabindex="-1" role="group" aria-labelledby="game-hint" aria-describedby="game-desc" data-piece="{{ game.piece }}" data-done="{{ game.done }}">
+        <div class="game-bar">
+          <p class="label" id="game-hint">{{{ _.ic.broom }}}<span>{{ game.hint }}</span></p>
+          <div class="game-tools">
+            <p class="game-score" aria-live="polite" aria-atomic="true"><span id="game-score">00</span><span class="slash">/</span><span>{{ _.game_total }}</span></p>
+            <button class="icon-btn" type="button" id="game-scatter" aria-label="{{ game.scatter }}" title="{{ game.scatter }}">{{{ _.ic.scatter }}}</button>
+          </div>
+        </div>
+        <p class="sr-only" id="game-desc">{{ game.aria }}</p>
+        <p class="sr-only" id="game-live" role="status" aria-live="polite"></p>
+        <div class="game-stage">
+          <div class="game-field" id="game-field"></div>
+          <div class="game-board">
+            <div class="game-host" id="game-host">{{{ _.m.idle }}}</div>
+            <div class="game-goal">
+              <ol class="game-slots" id="game-slots" aria-hidden="true">{{{ _.game_slots }}}</ol>
+              <div class="game-done" id="game-done" hidden>
+                <p>{{ game.done }}</p>
+                <button class="btn btn-secondary btn-sm" type="button" id="game-reset">{{{ _.ic.scatter }}}<span>{{ game.reset }}</span></button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
+</main>
 
-    <p class="footer-tagline">{{ footer.tagline | ph }}</p>
-
-    <div class="footer-bottom">
-      <p class="footer-copy">{{ footer.copyright }}</p>
+<footer class="site-footer">
+  <div class="wrap footer-top">
+    <div class="footer-brand">
+      <a class="brand" href="#top">{{{ _.head }}}<span>tidy-one</span></a>
+      <p class="footer-tagline">{{ footer.tagline | ph }}</p>
+      <p class="footer-made">{{ footer.made_by }}</p>
+    </div>
+    <nav class="footer-nav" aria-label="{{ footer.links_label }}">
       <ul class="footer-links">
-        <li><a href="{{ _.repo }}/blob/main/LICENSE" rel="noopener license">{{ footer.license }}</a></li>
-        <li><a href="{{ _.repo }}" rel="noopener">{{ footer.github }}</a></li>
-        <li>{{ footer.made_in }}</li>
-        <li><a href="#top" class="to-top"><span class="to-top-label">{{ footer.back_to_top }}</span><span class="arrow" aria-hidden="true">↑</span></a></li>
+        <li><a href="{{ _.repo }}" rel="noopener">{{{ _.ic.branch }}}<span>{{ footer.github }}</span></a></li>
+        <li><a href="{{ _.license }}" rel="noopener license">{{{ _.ic.scale }}}<span>{{ footer.license }}</span></a></li>
+        <li><a href="{{ _.releases }}" rel="noopener">{{{ _.ic.bell }}}<span>{{ footer.releases }}</span></a></li>
+        <li><a href="{{ _.readme }}" rel="noopener">{{{ _.ic.book }}}<span>{{ footer.readme }}</span></a></li>
+        <li><a href="#top">{{{ _.ic.arrowup }}}<span>{{ footer.back_to_top }}</span></a></li>
       </ul>
+    </nav>
+  </div>
+  <div class="footer-band">
+    <svg class="band-edge" viewBox="0 0 1440 260" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="aura-far" x="-5%" y="-80%" width="110%" height="260%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="18"/></filter>
+        <filter id="aura-mid" x="-5%" y="-80%" width="110%" height="260%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="10"/></filter>
+        <filter id="aura-near" x="-5%" y="-80%" width="110%" height="260%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="4"/></filter>
+        <path id="wave" d="M-60 176C180 108 420 90 700 140S1180 232 1500 144V400H-60Z"/>
+      </defs>
+      <use class="aura aura-1" href="#wave" y="-30" filter="url(#aura-far)"/>
+      <use class="aura aura-2" href="#wave" y="-15" filter="url(#aura-mid)"/>
+      <use class="aura aura-3" href="#wave" y="-5" filter="url(#aura-near)"/>
+      <use class="band-fill" href="#wave" filter="url(#aura-near)"/>
+    </svg>
+    <div class="band-body">
+      <div class="wrap band-row">
+        <div class="band-mark" aria-hidden="true">{{{ _.m.idle }}}<span class="band-word">tidy-one</span></div>
+        <p class="band-legal">{{ footer.copyright }}</p>
+      </div>
     </div>
   </div>
 </footer>
 
-<script type="application/json" id="lang-data">{{{ _.suggest_json }}}</script>
-<script src="{{ _.root }}assets/site.js?v={{ _.version }}" defer></script>
+<script src="assets/site.js?v={{ _.version }}" defer></script>
 </body>
 </html>
