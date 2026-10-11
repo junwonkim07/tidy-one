@@ -61,6 +61,14 @@ def rbox(g, x0, y0, x1, y1, fillc, line="O", r=2):
             g[cy + sy][cx + sx] = line  # inner corner pixel keeps the outline continuous
 
 
+def stamp(g, x0, y0, rows):
+    """Draw a small bitmap (palette letters, '.' = leave as is) with its top-left at x0, y0."""
+    for dy, row in enumerate(rows):
+        for dx, c in enumerate(row):
+            if c != ".":
+                put(g, [(x0 + dx, y0 + dy)], c)
+
+
 def base(eyes="open", mouth="smile"):
     g = blank()
     # note card (behind the body top)
@@ -75,8 +83,9 @@ def base(eyes="open", mouth="smile"):
     # soft shade along the bottom of the body
     fill(g, BX0 + 1, BY1 - 1, BX1 - 1, BY1 - 1, "b")
     g[BY1 - 1][BX0 + 1] = "B"; g[BY1 - 1][BX1 - 1] = "B"
-    # screen
+    # screen: rounded bezel; the cut corners show the body, never the page behind it
     rbox(g, SX0, SY0, SX1, SY1, "S", r=1)
+    put(g, [(SX0, SY0), (SX1, SY0), (SX0, SY1), (SX1, SY1)], "B")
     # drive slot + leds under the screen
     fill(g, SX0 + 1, SY1 + 3, SX0 + 11, SY1 + 3, "O")
     put(g, [(SX1 - 4, SY1 + 3), (SX1 - 3, SY1 + 3)], "M")
@@ -127,11 +136,45 @@ put(g, [(33, 1), (34, 1), (35, 1), (36, 1), (36, 2), (35, 3), (34, 4), (33, 5), 
 put(g, [(36, 7), (37, 7), (38, 7), (38, 8), (37, 9), (36, 10), (37, 10), (38, 10)], "M")
 poses["sleep"] = g
 
+# wave: a mitten (thumb towards the face) raised above the body, in two frames that site.js
+# swaps while it waves: the hand upright, then tipped outwards, with a small motion mark
+MITTEN = [
+    "...OOOO.",
+    "..OBBBBO",
+    "..OBBBBO",
+    ".OOBBBBO",
+    "OBBOBBBO",
+    "OBBOBBBO",
+    ".OBBBBBO",
+    "..OBBBBO",
+    "...OOOO.",
+]
+MITTEN_OUT = [
+    "....OOO.",
+    "...OBBBO",
+    "..OBBBBO",
+    ".OOBBBBO",
+    "OBBOBBBO",
+    "OBBOBBO.",
+    ".OBBBBO.",
+    "..OBBBO.",
+    "...OOO..",
+]
 g = base(eyes="happy", mouth="smile")
-put(g, [(33, 20), (34, 19), (35, 18), (36, 17), (36, 16)], "O")          # arm
-rbox(g, 35, 11, 39, 15, "B", r=1)                                        # raised hand
-put(g, [(33, 21)], "O")
+stamp(g, 31, 0, MITTEN)
+fill(g, 35, 9, 36, 9, "O")                                                # wrist
+put(g, [(35, 10), (34, 11), (34, 12), (33, 13), (33, 14), (33, 15)], "O")   # arm
+put(g, [(36, 10), (35, 11), (35, 12), (34, 13), (34, 14)], "O")
+put(g, [(28, 2), (27, 3), (27, 4), (28, 5)], "M")                          # motion mark
 poses["wave"] = g
+
+g = base(eyes="happy", mouth="smile")
+stamp(g, 32, 1, MITTEN_OUT)
+fill(g, 35, 10, 36, 10, "O")                                              # wrist
+put(g, [(35, 11), (34, 12), (34, 13), (33, 14), (33, 15)], "O")             # arm
+put(g, [(36, 11), (35, 12), (35, 13), (34, 14)], "O")
+put(g, [(29, 4), (28, 5), (28, 6), (29, 7)], "M")                          # motion mark
+poses["wave2"] = g
 
 g = base(eyes="right", mouth="o")
 put(g, [(33, 22), (34, 21)], "O")                                         # arm

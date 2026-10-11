@@ -89,6 +89,7 @@
       </div>
     </div>
     <div class="hero-field">
+      <canvas id="tidy-glow" class="tidy-glow" aria-hidden="true"></canvas>
       <canvas id="tidy-grid" class="tidy-grid" role="img" aria-label="{{ meta.field_alt }}"></canvas>
       <p class="wrap scroll-hint"><svg class="hint-arrow" viewBox="0 0 5 5" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="currentColor" d="M2 0h1v2h-1zM0 2h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM1 3h3v1h-3zM2 4h1v1h-1z"/></svg>{{ hero.scroll_hint }}</p>
     </div>
@@ -116,7 +117,7 @@
       </div>
       <ul class="feature-grid">
         <li class="feature">
-          <div class="feature-icon">{{{ _.ic.devices }}}</div>
+          <div class="feature-icon">{{{ _.fic.devices }}}</div>
           <h3><span class="num-badge" aria-hidden="true">01</span><span class="feature-title">{{ features.devices.title | ph }}</span></h3>
           <div class="feature-body">
             <p>{{ features.devices.body }}</p>
@@ -124,7 +125,7 @@
           </div>
         </li>
         <li class="feature">
-          <div class="feature-icon">{{{ _.ic.doc }}}</div>
+          <div class="feature-icon">{{{ _.fic.doc }}}</div>
           <h3><span class="num-badge" aria-hidden="true">02</span><span class="feature-title">{{ features.formats.title | ph }}</span></h3>
           <div class="feature-body">
             <p>{{ features.formats.body }}</p>
@@ -132,12 +133,12 @@
           </div>
         </li>
         <li class="feature">
-          <div class="feature-icon">{{{ _.ic.search }}}</div>
+          <div class="feature-icon">{{{ _.fic.search }}}</div>
           <h3><span class="num-badge" aria-hidden="true">03</span><span class="feature-title">{{ features.search.title | ph }}</span></h3>
           <div class="feature-body"><p>{{ features.search.body }}</p></div>
         </li>
         <li class="feature">
-          <div class="feature-icon">{{{ _.ic.bot }}}</div>
+          <div class="feature-icon">{{{ _.fic.bot }}}</div>
           <h3><span class="num-badge" aria-hidden="true">04</span><span class="feature-title">{{ features.agents.title | ph }}</span></h3>
           <div class="feature-body"><p>{{ features.agents.body }}</p></div>
         </li>
@@ -211,7 +212,6 @@
     <div class="wrap">
       <h2 class="label label-heading" id="works-title">{{{ _.ic.plug }}}<span>{{ works_with.label }}</span></h2>
       <ul class="client-grid">{{{ _.clients }}}</ul>
-      <p class="works-note">{{{ _.ic.plug }}}<span>{{ works_with.note }}</span></p>
       <p class="fineprint">{{ works_with.disclaimer }}</p>
     </div>
   </section>
@@ -221,7 +221,6 @@
       <div class="ed-head">
         <h2 id="status-title">{{ status.heading | ph }}</h2>
         <p class="label">{{{ _.ic.flag }}}<span>{{ status.label }}</span></p>
-        <div class="section-mascot status-mascot">{{{ _.m.tidy }}}</div>
       </div>
       <div class="ed-body">
         <div class="roadmap">
@@ -246,7 +245,7 @@
           <p class="label" id="game-hint">{{{ _.ic.broom }}}<span>{{ game.hint }}</span></p>
           <div class="game-tools">
             <p class="game-score" aria-live="polite" aria-atomic="true"><span id="game-score">00</span><span class="slash">/</span><span>{{ _.game_total }}</span></p>
-            <button class="icon-btn" type="button" id="game-scatter" aria-label="{{ game.scatter }}" title="{{ game.scatter }}">{{{ _.ic.scatter }}}</button>
+            <button class="tool-btn" type="button" id="game-scatter" aria-label="{{ game.scatter }}" title="{{ game.scatter }}">{{{ _.ic.scatter }}}<span class="tool-label" aria-hidden="true">{{ game.scatter_short }}</span></button>
           </div>
         </div>
         <p class="sr-only" id="game-desc">{{ game.aria }}</p>
@@ -272,7 +271,7 @@
 <footer class="site-footer">
   <div class="wrap footer-top">
     <div class="footer-brand">
-      <a class="brand" href="#top">{{{ _.head }}}<span>tidy-one</span></a>
+      <a class="brand brand-text" href="#top">tidy-one</a>
       <p class="footer-tagline">{{ footer.tagline | ph }}</p>
       <p class="footer-made">{{ footer.made_by }}</p>
     </div>

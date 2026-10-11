@@ -491,18 +491,92 @@ ICONS = {
     ],
     "devices": [
         "................",
-        "................",
-        ".########.......",
-        ".#++++++#.......",
-        ".#++++++#.......",
-        ".#++++++#..#####",
-        ".#++++++#..#+++#",
-        ".#++++++#..#+++#",
-        ".########..#+++#",
+        "##########......",
+        "#++++++++#......",
+        "#++++++++#......",
+        "#++++++++#......",
+        "#++++++++#.#####",
+        "#++++++++#.#+++#",
+        "#++++++++#.#+++#",
+        "#++++++++#.#+++#",
         "##########.#+++#",
-        "...........#+++#",
-        "...........#####",
+        "....##.....#+++#",
+        "....##.....#+++#",
+        "....##.....#+++#",
+        "..######...#####",
         "................",
+        "................",
+    ],
+    # file types: each its own glyph (a PDF label band, a spreadsheet page, a Hangul page)
+    "pdf": [
+        "................",
+        "...########.....",
+        "...#++++++##....",
+        "...#++++++#+#...",
+        "...#++++++####..",
+        ".#############..",
+        ".#+++#++##+++#..",
+        ".#+#+#+#+#+###..",
+        ".#+++#+#+#++##..",
+        ".#+###+#+#+###..",
+        ".#+###++##+###..",
+        ".#############..",
+        "...#+++++++++#..",
+        "...###########..",
+        "................",
+        "................",
+    ],
+    "sheet": [
+        "................",
+        "...########.....",
+        "...#++++++##....",
+        "...#++++++#+#...",
+        "...#++++++####..",
+        "...#+++++++++#..",
+        "...#+#######+#..",
+        "...#+#++#++#+#..",
+        "...#+#######+#..",
+        "...#+#++#++#+#..",
+        "...#+#######+#..",
+        "...#+++++++++#..",
+        "...###########..",
+        "................",
+        "................",
+        "................",
+    ],
+    "hangul": [
+        "................",
+        "...########.....",
+        "...#++++++##....",
+        "...#++++++#+#...",
+        "...#++++++####..",
+        "...#+++###+++#..",
+        "...#+#######+#..",
+        "...#+++++++++#..",
+        "...#+++###+++#..",
+        "...#++#+++#++#..",
+        "...#++#+++#++#..",
+        "...#+++###+++#..",
+        "...#+++++++++#..",
+        "...###########..",
+        "................",
+        "................",
+    ],
+    # a workspace app: a window with a sidebar and a page of blocks
+    "workspace": [
+        "................",
+        "................",
+        ".##############.",
+        ".#+++#........#.",
+        ".#+++#.######.#.",
+        ".#+++#........#.",
+        ".#+++#.####...#.",
+        ".#+++#........#.",
+        ".#+++#.#####..#.",
+        ".#+++#........#.",
+        ".#+++#.###....#.",
+        ".#+++#........#.",
+        ".##############.",
         "................",
         "................",
         "................",
@@ -835,7 +909,7 @@ MASCOT_VARS = {
     "D": ("--m-card", "#84A98C"),
     "d": ("--m-card2", "#52796F"),
 }
-MASCOT_POSES = ["idle", "blink", "wave", "search", "sleep", "tidy", "tidy2"]
+MASCOT_POSES = ["idle", "blink", "wave", "wave2", "search", "sleep", "tidy", "tidy2"]
 
 # 5 x 9 pixel font for the Open Graph image (rows 0-1 ascender, 2-6 x-height, 7-8 descender)
 GLYPHS = {
@@ -859,6 +933,7 @@ GLYPHS = {
     "y": [".....", ".....", "#...#", "#...#", "#...#", "#...#", ".####", "....#", ".###."],
     "A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#", ".....", "....."],
     "I": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "#####", ".....", "....."],
+    "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###.", ".....", "....."],
     "-": [".....", ".....", ".....", ".....", ".###.", ".....", ".....", ".....", "....."],
     ",": [".....", ".....", ".....", ".....", ".....", ".##..", ".##..", "..#..", ".#..."],
     ".": [".....", ".....", ".....", ".....", ".....", ".##..", ".##..", ".....", "....."],
@@ -964,6 +1039,23 @@ def icon(name, cls=""):
     )
 
 
+def ink_box(rows):
+    """First and last inked column and row of a bitmap."""
+    xs = [x for row in rows for x, c in enumerate(row) if c != "."]
+    ys = [y for y, row in enumerate(rows) if row.strip(".")]
+    return min(xs), max(xs), min(ys), max(ys)
+
+
+def feature_icon(name):
+    """A 16 x 16 icon whose viewBox starts at the first inked column and ends at the last inked
+    row, so the four feature icons share a left edge and a baseline whatever their bitmaps."""
+    x0, _x1, _y0, y1 = ink_box(ICONS[name])
+    return (
+        '<svg class="ic" viewBox="%d %d 16 16" aria-hidden="true" focusable="false" '
+        'shape-rendering="crispEdges"><use href="#i-%s"/></svg>' % (x0, y1 - 15, name)
+    )
+
+
 def mascot(pose, cls=""):
     # 40 x 32 crops the four empty rows under the feet; the broom's bristles (row 32) may poke
     # out below (overflow is visible), so the feet stand on whatever line the mascot sits on.
@@ -1010,14 +1102,17 @@ def logo_svg(rel):
     return '<svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">%s</svg>' % inner
 
 
-def client_items(clients):
+def client_items(clients, more):
     out = []
     for c in clients:
         name, url, logo = c["name"], c["url"], c.get("logo") or ""
         if not re.match(r"^https://", url):
             sys.exit("clients.json: %s needs an https URL" % name)
         if logo:
-            mark = '<span class="client-mark">%s</span>' % logo_svg(logo)
+            # "size": a solid mark (lots of ink) is drawn a little smaller so the row looks even
+            size = c.get("size")
+            style = ' style="--logo:%dpx"' % int(size) if size else ""
+            mark = '<span class="client-mark"%s>%s</span>' % (style, logo_svg(logo))
             cls = "client"
         else:
             # no logo file: the name itself is set as a wordmark in the logo's place
@@ -1027,6 +1122,11 @@ def client_items(clients):
             '<li class="%s"><a href="%s" rel="noopener">%s<span class="client-name">%s</span></a></li>'
             % (cls, esc(url), mark, esc(name))
         )
+    # the last tile stands for every other MCP client (and keeps the rows full: 20 tiles)
+    out.append(
+        '<li class="client client-more"><span class="client-tile"><span class="client-mark">%s</span>'
+        '<span class="client-name">%s</span></span></li>' % (icon("plug"), esc(more))
+    )
     return "".join(out)
 
 
@@ -1133,7 +1233,7 @@ def draw_og(path):
     x0, y0 = 72, 168
     img.text("tidy-one", x0, y0, 17, PALETTE["slate"])
     tu, ty = 5, y0 + 9 * 17 + 48
-    img.text("one tidy, private memory", x0, ty, tu, PALETTE["pine"])
+    img.text("One tidy, private memory", x0, ty, tu, PALETTE["pine"])
     img.text("for all your AI agents.", x0, ty + 11 * tu + 4, tu, PALETTE["pine"])
 
     # the mascot, 8 px per art pixel, feet on the floor line (the feet end at row 32)
@@ -1263,14 +1363,15 @@ def build_context(copy, clients, version):
             '<li class="chip">%s<span>%s</span></li>' % (icon(i), esc(label)) for i, label in items
         )
 
-    def road_items(items, mark):
+    def road_items(items):
+        # one topic icon per row, in a fixed slot, so every line of text starts at the same x
+        # (the column heading already says done or next)
         out = []
-        for names, text in items:
-            topic = "".join(icon(n, "topic") for n in names.split())
-            out.append(
-                '<li>%s<span class="road-topics">%s</span><span class="road-text">%s</span></li>'
-                % (icon(mark, "road-mark"), topic, esc(text))
-            )
+        for name, text in items:
+            if len(name.split()) != 1:
+                sys.exit("status: %r should name one icon" % name)
+            out.append('<li><span class="road-topic">%s</span><span class="road-text">%s</span></li>'
+                       % (icon(name), esc(text)))
         return "".join(out)
 
     # game: 12 slots in a 4 x 3 grid, toned by diagonal so the tidy result runs from the
@@ -1304,6 +1405,7 @@ def build_context(copy, clients, version):
         "version": version,
         "sprite": sprite(),
         "ic": {n: icon(n) for n in ICONS},
+        "fic": {n: feature_icon(n) for n in ("devices", "doc", "search", "bot")},
         "m": {p: mascot(p) for p in MASCOT_POSES},
         "head": head(),
         "node_device": node_svg("node_device"),
@@ -1311,9 +1413,9 @@ def build_context(copy, clients, version):
         "node_agents": node_svg("node_agents"),
         "device_chips": chips(feats["devices"]["chips"]),
         "format_chips": chips(feats["formats"]["chips"]),
-        "clients": client_items(clients),
-        "done_items": road_items(copy["status"]["done"], "check"),
-        "next_items": road_items(copy["status"]["next"], "hourglass"),
+        "clients": client_items(clients, copy["works_with"]["more"]),
+        "done_items": road_items(copy["status"]["done"]),
+        "next_items": road_items(copy["status"]["next"]),
         "game_slots": slots,
         "game_total": "12",
         "json_ld": json.dumps(json_ld, ensure_ascii=False).replace("</", "<\\/"),
@@ -1333,7 +1435,7 @@ REDIRECT = """<!doctype html>
 <script>window.location.replace("../" + window.location.hash);</script>
 </head>
 <body>
-<p><a href="../">tidy-one</a></p>
+<p>This page has moved to <a href="../">tidy-one</a>.</p>
 </body>
 </html>
 """

@@ -76,9 +76,7 @@
   --px-3: #84A98C;
   --px-4: #CAD2C5;
   --px-empty: rgba(202, 210, 197, .32);
-  --px-glow: #84A98C;         /* one tint for the bloom on paper */
-  --px-glow-alpha: .28;
-  --px-glow-blend: source-over;
+  --px-glow-alpha: 0;         /* no bloom on paper: it could only darken the gutters */
 
   /* footer game: piece tones (darkest to sage), slot outline, field dots */
   --g0: #2F3E46;
@@ -159,9 +157,7 @@
     --px-3: #A9BBA6;
     --px-4: #CAD2C5;
     --px-empty: rgba(202, 210, 197, .055);
-    --px-glow: tone;          /* each pixel blooms in its own tone */
-    --px-glow-alpha: .3;
-    --px-glow-blend: lighter;
+    --px-glow-alpha: .34;     /* each pixel blooms in its own tone (site.js) */
     --g0: #E6ECE8;
     --g1: #CAD2C5;
     --g2: #A9BBA6;
@@ -212,9 +208,7 @@
   --px-3: #A9BBA6;
   --px-4: #CAD2C5;
   --px-empty: rgba(202, 210, 197, .055);
-  --px-glow: tone;
-  --px-glow-alpha: .3;
-  --px-glow-blend: lighter;
+  --px-glow-alpha: .34;
   --g0: #E6ECE8;
   --g1: #CAD2C5;
   --g2: #A9BBA6;
@@ -502,12 +496,12 @@ main:focus { outline: none; }
 }
 
 @media (max-width: 900px) {
-  /* brand | Menu | theme on the first row; the menu opens below as a full-width row */
-  .header-row { gap: 6px; min-height: 64px; flex-wrap: wrap; }
+  /* brand | Menu | theme on the first row; the menu opens below as a full-width row. The row
+     has padding rather than a min-height, so opening the menu never moves the first line, and
+     site.js moves the theme toggle in front of the menu here, so focus follows what is drawn. */
+  .header-row { gap: 6px; min-height: 0; padding-block: 10px; flex-wrap: wrap; }
   .js .menu-btn { display: inline-flex; }
-  .theme-toggle { order: 2; }
-  .menu-btn { order: 1; }
-  .site-menu { order: 3; width: 100%; }
+  .site-menu { width: 100%; }
   .js .site-menu { display: none; }
   .js .site-menu.is-open { display: block; }
   .primary-nav ul {
@@ -588,12 +582,12 @@ main:focus { outline: none; }
   gap: 10px;
 }
 .statement {
-  font: 500 .9375rem/1.45 var(--font);
-  letter-spacing: .07em;
-  text-transform: uppercase;
+  font: 500 1.0625rem/1.4 var(--font);
+  letter-spacing: -0.005em;
   text-wrap: balance;
   color: var(--ink);
 }
+@media (min-width: 620px) { .statement { font-size: 1.1875rem; } }
 
 /* The mascot stands on the field's hairline: its feet touch the line, and while the field
    tidies it sweeps (site.js swaps the poses and slides it a few art pixels). */
@@ -605,6 +599,9 @@ main:focus { outline: none; }
 }
 .hero-mascot .mascot {
   --mpx: inherit;
+  /* the art leaves seven empty columns right of the body: hang them past the edge, so the
+     body lines up with the buttons above (the broom and the wave reach into the gutter) */
+  margin-right: calc(-7 * var(--mpx));
   transform: translateX(var(--sweep, 0px));
   cursor: default;
 }
@@ -625,7 +622,6 @@ main:focus { outline: none; }
 
 @media (max-width: 480px) {
   .cta-row .btn { flex: 1 1 0; padding: 0 14px; }
-  .statement { font-size: .8125rem; }
 }
 @media (max-width: 400px) {
   .hero-grid { --hero-pt: 16px; gap: 22px; }
@@ -641,32 +637,52 @@ main:focus { outline: none; }
     padding-top: 0;
   }
   .hero-main { padding: var(--hero-pt) clamp(32px, 4vw, 64px) clamp(40px, 4vw, 60px) 0; }
-  /* statement at the top (level with the badge), the calls to action below it, and the
-     mascot at the foot, standing on the field's hairline */
+  /* the statement at the top (level with the badge), the calls to action below it, and the
+     mascot at the foot, standing on the field's hairline. Until the two buttons fit side by
+     side (1440px) they stack, and the mascot stands beside them instead of below, so the right
+     column never ends up taller than the headline. */
   .hero-aside {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    --sweep-art: 3;            /* site.js: how far the mascot slides while it sweeps (art px) */
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas: "statement statement" "cta mascot" ". mascot";
+    align-items: start;
+    column-gap: 16px;
+    row-gap: 0;
     padding: calc(var(--hero-pt) + 6px) 0 0 clamp(24px, 2.4vw, 36px);
     border-left: 1px solid var(--line);
   }
   .hero-aside .statement { padding: 0; max-width: none; }
-  .hero-aside .cta-row { margin-top: 24px; }
-  .hero-aside .cta-row .btn { flex: 1 1 0; }
-  .hero-aside .hero-mascot { --mpx: 3px; margin-top: auto; padding-top: 8px; align-self: flex-end; }
+  .hero-aside .cta-row { flex-direction: column; margin-top: 24px; }
+  .hero-aside .cta-row .btn { justify-content: flex-start; padding: 0 16px; gap: 8px; }
+  .hero-aside .hero-mascot { --mpx: 3px; align-self: end; justify-self: end; padding-top: 8px; }
 }
-/* the mascot grows with the column, so the right column never outgrows the headline */
-@media (min-width: 1280px) {
+@media (min-width: 1440px) {
+  .hero-aside {
+    --sweep-art: 10;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "statement" "cta" "mascot";
+  }
+  /* natural widths sharing the slack: with a wider fallback font they still fit */
+  .hero-aside .cta-row { flex-direction: row; }
+  .hero-aside .cta-row .btn { flex: 1 1 auto; justify-content: center; padding: 0 18px; gap: 10px; }
   .hero-aside .hero-mascot { --mpx: 4px; }
 }
-@media (min-width: 1600px) {
-  .hero-aside .hero-mascot { --mpx: 5px; }
-}
 
-.hero-field { position: relative; border-top: 1px solid var(--line); }
+.hero-field { --field-h: clamp(220px, 31vw, 480px); position: relative; border-top: 1px solid var(--line); }
 .tidy-grid {
+  position: relative;          /* above the glow */
   width: 100%;
-  height: clamp(220px, 31vw, 480px);
+  height: var(--field-h);
+}
+/* the bloom under the pixels: a canvas at a fifth of the size, scaled up by the browser */
+.tidy-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--field-h);
+  pointer-events: none;
 }
 .scroll-hint {
   display: flex;
@@ -722,6 +738,7 @@ main:focus { outline: none; }
 }
 .section-mascot { line-height: 0; }
 .section-mascot .mascot { --mpx: 3px; }
+.privacy-mascot .mascot { margin-left: calc(-7 * var(--mpx)); }
 @media (max-width: 619px) {
   .section-mascot .mascot { --mpx: 2px; }
 }
@@ -948,14 +965,13 @@ main:focus { outline: none; }
 .label-heading { font-weight: 600; }
 .client-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));   /* 20 tiles: full rows at 4, 5 and 10 */
   gap: 4px;
   margin-top: 28px;
 }
-@media (min-width: 520px) { .client-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (min-width: 760px) { .client-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 @media (min-width: 1100px) { .client-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
-.client a {
+.client a, .client-tile {
   position: relative;
   isolation: isolate;
   display: grid;
@@ -980,33 +996,33 @@ main:focus { outline: none; }
 }
 .client a:hover::before { background: var(--bg-2); }
 .client-mark { display: grid; place-items: center; height: 32px; }
-.logo { display: block; width: 28px; height: 28px; }
+/* logos at 26px; a solid mark (lots of ink) sets --logo smaller in clients.json */
+.logo { display: block; width: var(--logo, 26px); height: var(--logo, 26px); }
 .client-name { font-size: .8125rem; font-weight: 500; line-height: 1.3; color: var(--ink-soft); }
 .client a:hover .client-name { color: var(--ink); }
-/* no logo file: the name is set as a wordmark in the logo's place, and not repeated below */
+/* no logo file: the name is set as a wordmark, centred across the logo and caption rows,
+   and not repeated below */
+.client-text a { grid-template-rows: minmax(0, 1fr); align-content: stretch; }
 .client-word {
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  white-space: nowrap;
+  height: auto;
+  align-self: center;
+  font-size: .9375rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ink-soft);
 }
+.client-text a:hover .client-word { color: var(--ink); }
 .client-text .client-name {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
-.works-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 24px;
-  color: var(--ink-soft);
-}
-.works-note .ic { color: var(--label); }
+/* the last tile: every other MCP client */
+.client-more .client-mark { color: var(--label); }
+.client-more .ic { width: 32px; height: 32px; }
 .fineprint { margin-top: 8px; font-size: .8125rem; line-height: 1.6; color: var(--ink-soft); max-width: 52em; }
 
 /* ------------------------------------------------------------- roadmap */
-.status-mascot { margin-top: 36px; }
 .roadmap {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1028,17 +1044,17 @@ main:focus { outline: none; }
 }
 .road-title .ic { color: var(--ink); }
 .road-list li {
-  display: flex;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 13px 0;
   border-bottom: 1px solid var(--line);
   font-size: 1rem;
   line-height: 1.5;
 }
-.road-mark { color: var(--ink); }
-.is-next .road-mark { color: var(--ink-soft); --icon-accent: var(--line-strong); }
-.road-topics { display: inline-flex; gap: 4px; color: var(--label); }
+.road-topic { color: var(--ink-soft); }
+.is-next .road-topic { color: var(--label); --icon-accent: var(--line-strong); }
 .is-next li { color: var(--ink-soft); }
 .road-note { margin-top: 24px; }
 
@@ -1053,7 +1069,39 @@ main:focus { outline: none; }
   justify-content: space-between;
   gap: 16px;
 }
-.game-tools { display: flex; align-items: center; gap: 12px; }
+.game-tools { display: flex; align-items: center; gap: 14px; }
+.tool-btn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 500 .875rem/1 var(--font);
+  color: var(--ink);
+  cursor: pointer;
+}
+.tool-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg-2);
+  clip-path: var(--px-clip);
+  --step: 2px;
+  transition: background-color .2s ease;
+}
+.tool-btn:hover::before { background: var(--bg-3); }
+.tool-label { display: none; }
+@media (min-width: 640px) {
+  .tool-btn { width: auto; padding: 0 14px 0 12px; }
+  .tool-label { display: inline; }
+}
 .game-score {
   font-family: var(--font);
   font-size: 1.5rem;
@@ -1156,6 +1204,7 @@ main:focus { outline: none; }
 }
 .footer-brand { display: grid; justify-items: start; gap: 10px; }
 .footer-brand .brand { margin: 0 0 4px; }
+.brand-text { padding: 0; }
 .footer-tagline { max-width: 22em; font-size: .9375rem; color: var(--ink-soft); }
 .footer-made { font-size: .875rem; color: var(--ink-soft); }
 .footer-links { display: grid; justify-items: end; gap: 2px; }
@@ -1190,34 +1239,38 @@ main:focus { outline: none; }
 .band-edge .aura-2 { fill: var(--aura-2); opacity: .9; }
 .band-edge .aura-3 { fill: var(--aura-3); }
 .band-edge .band-fill { fill: var(--fband); }
-.band-body { margin-top: -2px; background: var(--fband); }
+.band-body { margin-top: -2px; background: var(--fband); overflow: hidden; } /* the word's box reaches past its descender */
 .band-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
+  gap: 30px;                   /* room for the descender of the 'y' above the hairline */
   padding-top: 4px;
   padding-bottom: clamp(28px, 4vw, 48px);
 }
+/* the mascot's feet stand on the word's baseline (an svg's baseline is its bottom edge) */
 .band-mark {
   --gap: clamp(12px, 2vw, 28px);
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   gap: var(--gap);
   min-width: 0;
   container-type: inline-size;
 }
 .band-mark { --mpx: 2px; }
-.band-mark .mascot { --mpx: inherit; }
+.band-mark .mascot { --mpx: inherit; margin-inline: calc(-7 * var(--mpx)); } /* body on the text edge */
 .band-word {
   display: block;
   font-family: var(--font);
   font-weight: 600;
   font-size: clamp(3.5rem, 1rem + 11.5vw, 12.5rem);
   /* as large as the column allows next to the mascot ("tidy-one" is about 3.5em wide) */
-  font-size: min(12.5rem, calc((100cqi - 40 * var(--mpx) - var(--gap)) / 3.6));
+  font-size: min(12.5rem, calc((100cqi - 26 * var(--mpx) - var(--gap)) / 3.6));
   line-height: .78;
   letter-spacing: -0.045em;
-  padding: .06em .04em .1em 0;
+  /* the gradient is clipped to the text inside this box, so the box reaches below the 'y';
+     the negative margin takes that room back out of the layout */
+  padding: .06em .04em .3em 0;
+  margin-bottom: -.3em;
   white-space: nowrap;
   color: var(--mist);
   background: linear-gradient(180deg, #F7F9F6 0%, #DCE3D8 26%, #A9BBA6 58%, #6E957D 82%, #52796F 100%);
@@ -1238,6 +1291,15 @@ main:focus { outline: none; }
   .band-row { grid-template-columns: minmax(0, 1fr) minmax(240px, 34%); align-items: end; gap: 48px; }
   .band-mark { --mpx: 4px; }
   .band-legal { margin-bottom: .6em; }
+}
+
+/* ------------------------------------------------------------- forced colours */
+@media (forced-colors: active) {
+  .gpx::before { forced-color-adjust: none; background: ButtonText; box-shadow: none; }
+  .gpx[data-t="3"]::before { box-shadow: none; }
+  .slot::before { border-color: ButtonText; }
+  .btn, .tool-btn { border: 1px solid ButtonText; }
+  .tidy-glow { display: none; }
 }
 
 /* ------------------------------------------------------------- motion */

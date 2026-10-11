@@ -15,10 +15,27 @@
   var reduceMotion = query("(prefers-reduced-motion: reduce)");
   var darkQuery = query("(prefers-color-scheme: dark)");
 
+  /* Reduced motion can be switched on while something moves. The change event does not always
+     arrive, so the loops call reduced() too: whichever notices the switch first runs every
+     handler once (stop, draw the still state, rest the mascot). */
+  var reducedSeen = !!reduceMotion.matches;
+  var reducedHandlers = [];
+  function onReduced(fn) { reducedHandlers.push(fn); }
+  function reduced() {
+    var now = !!reduceMotion.matches;
+    if (now !== reducedSeen) {
+      reducedSeen = now;
+      for (var i = 0; i < reducedHandlers.length; i++) reducedHandlers[i](now);
+    }
+    return now;
+  }
+  listen(reduceMotion, reduced);
+
   function store(key, value) {
     try {
       if (value === undefined) return window.localStorage.getItem(key);
-      window.localStorage.setItem(key, value);
+      if (value === null) window.localStorage.removeItem(key);
+      else window.localStorage.setItem(key, value);
     } catch (e) {
       return null;
     }
@@ -27,7 +44,8 @@
 
   /* ---------------------------------------------------------- theme
      The system preference is the default; the toggle overrides it and remembers the choice.
-     The inline script in <head> applies a stored choice before the first paint. */
+     Toggling back to what the system asks for forgets the choice, so the page follows the
+     system again. The inline script in <head> applies a stored choice before the first paint. */
   var themeListeners = [];
   function onTheme(fn) { themeListeners.push(fn); }
   function currentTheme() {
@@ -66,8 +84,14 @@
     if (btn) {
       btn.addEventListener("click", function () {
         var next = currentTheme() === "dark" ? "light" : "dark";
-        root.setAttribute("data-theme", next);
-        store(THEME_KEY, next);
+        var system = darkQuery.matches ? "dark" : "light";
+        if (next === system) {
+          root.removeAttribute("data-theme");
+          store(THEME_KEY, null);
+        } else {
+          root.setAttribute("data-theme", next);
+          store(THEME_KEY, next);
+        }
         changed();
       });
     }
@@ -82,6 +106,21 @@
     var btn = doc.querySelector(".menu-btn");
     var menu = doc.getElementById("site-menu");
     if (!btn || !menu) return;
+    // Narrow screens draw brand | Menu | theme, with the open menu on a row below, so the
+    // toggle moves in front of the menu in the DOM and focus follows that order; wide screens
+    // draw the links first, so it goes back after them.
+    var toggle = doc.getElementById("theme-toggle");
+    var narrow = query("(max-width: 900px)");
+    function placeToggle() {
+      if (!toggle || toggle.parentNode !== menu.parentNode) return;
+      var want = narrow.matches ? menu : null;
+      if (toggle.nextElementSibling === want) return;
+      var hadFocus = doc.activeElement === toggle;
+      menu.parentNode.insertBefore(toggle, want);
+      if (hadFocus) toggle.focus({ preventScroll: true });
+    }
+    placeToggle();
+    listen(narrow, placeToggle);
     function set(open) {
       btn.setAttribute("aria-expanded", open ? "true" : "false");
       menu.classList.toggle("is-open", open);
@@ -111,6 +150,29 @@
     };
   }
 
+  /* A wave is two frames swapped a few times (about 1.3 s), then the first frame holds.
+     With reduced motion the hand is simply raised. */
+  function waveFrames(apply) {
+    var timer = 0, n = 0;
+    function stop() {
+      if (timer) { window.clearInterval(timer); timer = 0; }
+    }
+    return {
+      start: function () {
+        stop();
+        n = 0;
+        apply(0);
+        if (reduceMotion.matches) return;
+        timer = window.setInterval(function () {
+          n++;
+          apply(n % 2);
+          if (n >= 6) { stop(); apply(0); }
+        }, 220);
+      },
+      stop: function () { stop(); apply(0); }
+    };
+  }
+
   /* The hero mascot: idle, blinking now and then (a few blinks, then it rests until the reader
      does something), waving while the reader points at it or at a call to action, and sweeping
      while the field tidies (two broom frames swapped by scroll progress, sliding a few art
@@ -120,16 +182,19 @@
     if (!box) return null;
     var setPose = poser(box);
     var svg = box.querySelector("svg");
-    var state = { wave: 0, blink: false, sweep: 0 };
+    var state = { wave: 0, waveFrame: 0, blink: false, sweep: 0 };
     var MAX_BLINKS = 4;
-    var blinks = 0, blinkTimer = 0, openTimer = 0, visible = true, mpx = 4;
+    var blinks = 0, blinkTimer = 0, openTimer = 0, visible = true, mpx = 4, sweepArt = 10;
 
     function render() {
-      setPose(state.wave ? "wave" : state.sweep === 1 ? "tidy" : state.sweep === 2 ? "tidy2" : state.blink ? "blink" : "idle");
+      setPose(state.wave ? (state.waveFrame ? "wave2" : "wave") : state.sweep === 1 ? "tidy" : state.sweep === 2 ? "tidy2" : state.blink ? "blink" : "idle");
     }
+    var waver = waveFrames(function (f) { state.waveFrame = f; render(); });
     function measure() {
       var w = svg ? svg.getBoundingClientRect().width : 0;
       mpx = w ? Math.round(w / 40) || 1 : 4;
+      // how far it may slide while sweeping (art pixels; less where the buttons stand beside it)
+      sweepArt = parseFloat(window.getComputedStyle(box).getPropertyValue("--sweep-art")) || 10;
     }
 
     function scheduleBlink() {
@@ -157,7 +222,10 @@
 
     // wave: each source (pointer on the mascot, pointer on or focus in the calls to action)
     function waveFrom(on) {
+      var was = state.wave;
       state.wave = Math.max(0, state.wave + (on ? 1 : -1));
+      if (!was && state.wave) waver.start();
+      else if (was && !state.wave) waver.stop();
       render();
     }
     function hoverable(el) {
@@ -186,11 +254,12 @@
         else { window.clearTimeout(blinkTimer); blinkTimer = 0; }
       }).observe(box);
     }
-    listen(reduceMotion, function () {
-      if (reduceMotion.matches) {
+    onReduced(function (on) {
+      if (on) {
         window.clearTimeout(blinkTimer);
         window.clearTimeout(openTimer);
         blinkTimer = 0;
+        waver.stop();
         state.blink = false;
         state.sweep = 0;
         box.style.removeProperty("--sweep");
@@ -206,9 +275,10 @@
     return {
       // P: the field's tidy progress, 0 (scattered) to 1 (tidy)
       progress: function (P) {
-        if (reduceMotion.matches) return;
+        if (reduced()) return;
         state.sweep = P > 0.015 && P < 0.985 ? 1 + (Math.floor(P * 36) % 2) : 0;
-        box.style.setProperty("--sweep", -Math.round(P * 10) * mpx + "px");
+        // out and back: it slides left while sweeping and is home again once the field is tidy
+        box.style.setProperty("--sweep", -Math.round(Math.sin(P * Math.PI) * sweepArt) * mpx + "px");
         render();
         wake();
       }
@@ -219,8 +289,10 @@
      Scattered: pixels hang from the hairline in loose clouds with ragged, dissolving edges,
      slightly off the grid and slightly smaller. Scrolling tidies them in a wave from left to
      right: each pixel travels to its own cell and clicks into place, filling 3 x 3 tiles sorted
-     from the darkest tone to mist. A soft bloom sits under the pixels: they are drawn once more,
-     larger, into a canvas at a fifth of the size, blurred there, and scaled up with smoothing.
+     from the darkest tone to mist. On the dark theme a soft bloom sits under the pixels: they are
+     drawn once more, larger, into a canvas at a fifth of the size and blurred there; that small
+     canvas is the page element behind the pixels, so the browser scales it up (no full-size
+     upscale on the main thread). The light theme has no bloom (on paper it can only darken).
      Colours come from CSS custom properties and are read again when the theme changes.
      The loop runs only while something moves: while the field catches up with the scroll, plus
      a slow, short drift (~10 fps, under 5 s) after load or a scroll, then it sleeps. */
@@ -238,18 +310,19 @@
     var DRIFT_MS = 4800;  // idle drift after load or the last scroll (under 5 s, WCAG 2.2.2)
     var FADE_MS = 1500;   // the drift eases out over this long before the loop sleeps
     var GLOW_SCALE = 5;   // CSS pixels per glow pixel
-    // how strongly each tone blooms (darkest first): on paper a sage haze, strongest around
-    // the deep and sage pixels (mist ones are faint already); on dark the light pixels glow
-    // in their own tone
-    var GLOW_LIGHT = [0.6, 0.75, 1, 0.8, 0.3];
-    var GLOW_DARK = [0.1, 0.25, 0.5, 0.6, 0.65];
+    // how strongly each tone blooms (darkest first). Each pixel glows in its own tone, and the
+    // light tones are weighted down so the mist on the right glows no more than the sage
+    var GLOW_WEIGHTS = [0.55, 0.5, 0.42, 0.3, 0.22];
 
     var colors = { tones: ["#2F3E46", "#354F52", "#52796F", "#84A98C", "#CAD2C5"], empty: "rgba(202,210,197,.32)",
-      glow: "#84A98C", glowAlpha: 0.42, blend: "source-over", weights: GLOW_LIGHT };
+      glowAlpha: 0 };
 
     var W = 0, H = 0, dpr = 1, cell = 12, gap = 2, cols = 0, rows = 0, ox = 0;
     var px = [], bg = null, XS, YS, SS, AS;
-    var glow = null, glowCtx = null, blur = null, blurCtx = null, gw = 0, gh = 0;
+    var glowEl = doc.getElementById("tidy-glow");
+    var outCtx = glowEl && glowEl.getContext ? glowEl.getContext("2d") : null;
+    var glow = null, glowCtx = null, gw = 0, gh = 0, glowShown = false;
+    if (outCtx && !("filter" in outCtx)) glowEl.style.filter = "blur(8px)"; // no canvas filter: blur the element
     var P = 0, target = 0, visible = true, raf = 0, timer = 0, last = 0, idleUntil = 0, tidyOut = "";
 
     var seed = 1;
@@ -271,10 +344,7 @@
       function v(name, fallback) { return (cs.getPropertyValue(name) || "").trim() || fallback; }
       for (var i = 0; i < 5; i++) colors.tones[i] = v("--px-" + i, colors.tones[i]);
       colors.empty = v("--px-empty", colors.empty);
-      colors.glow = v("--px-glow", "#84A98C");
-      colors.glowAlpha = parseFloat(v("--px-glow-alpha", "0.4")) || 0;
-      colors.blend = v("--px-glow-blend", "source-over");
-      colors.weights = colors.glow === "tone" ? GLOW_DARK : GLOW_LIGHT;
+      colors.glowAlpha = parseFloat(v("--px-glow-alpha", "0")) || 0;
     }
 
     function paintGrid() {
@@ -375,63 +445,57 @@
       SS = new Float32Array(n);
       AS = new Float32Array(n);
 
-      // bloom buffers at a fifth of the size (the blur runs there, so it costs next to nothing)
+      // bloom at a fifth of the size: sharp squares into a buffer, blurred into the page element
       gw = Math.max(1, Math.ceil(W / GLOW_SCALE));
       gh = Math.max(1, Math.ceil(H / GLOW_SCALE));
-      glow = glow || doc.createElement("canvas");
-      glow.width = gw;
-      glow.height = gh;
-      glowCtx = glow.getContext("2d");
-      if (glowCtx && "filter" in glowCtx) {
-        blur = blur || doc.createElement("canvas");
-        blur.width = gw;
-        blur.height = gh;
-        blurCtx = blur.getContext("2d");
-        if (blurCtx) blurCtx.filter = "blur(1.6px)";
+      if (outCtx) {
+        glow = glow || doc.createElement("canvas");
+        glow.width = gw;
+        glow.height = gh;
+        glowCtx = glow.getContext("2d");
+        glowEl.width = gw;
+        glowEl.height = gh;
+        glowShown = true;
       }
       paintGrid();
     }
 
     function drawGlow(n) {
-      if (!glowCtx || colors.glowAlpha <= 0) return;
+      if (!glowCtx || !outCtx) return;
+      if (colors.glowAlpha <= 0) {
+        if (glowShown) { outCtx.clearRect(0, 0, gw, gh); glowShown = false; }
+        return;
+      }
+      glowShown = true;
       var g = glowCtx;
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.globalAlpha = 1;
       g.clearRect(0, 0, gw, gh);
       g.setTransform(gw / W, 0, 0, gh / H, 0, 0);
-      var tone = colors.glow === "tone";
-      if (!tone) g.fillStyle = colors.glow;
       var pad = cell * 0.3, lastC = -1, lastA = -1;
       for (var i = 0; i < n; i++) {
         if (SS[i] <= 0) continue;
         var c = px[i].c;
-        var a = Math.round(colors.weights[c] * AS[i] * 10) / 10;
+        var a = Math.round(GLOW_WEIGHTS[c] * AS[i] * 10) / 10;
         if (a <= 0) continue;
         if (a !== lastA) { g.globalAlpha = a; lastA = a; }
-        if (tone && c !== lastC) { g.fillStyle = colors.tones[c]; lastC = c; }
+        if (c !== lastC) { g.fillStyle = colors.tones[c]; lastC = c; }
         g.fillRect(XS[i] - pad, YS[i] - pad, SS[i] + pad * 2, SS[i] + pad * 2);
       }
-      var src = glow;
-      if (blurCtx) {
-        blurCtx.clearRect(0, 0, gw, gh);
-        blurCtx.drawImage(glow, 0, 0);
-        src = blur;
-      }
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalCompositeOperation = colors.blend === "lighter" ? "lighter" : "source-over";
-      ctx.globalAlpha = colors.glowAlpha;
-      ctx.imageSmoothingEnabled = true;
-      if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(src, 0, 0, gw, gh, 0, 0, canvas.width, canvas.height);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
+      outCtx.setTransform(1, 0, 0, 1, 0, 0);
+      outCtx.clearRect(0, 0, gw, gh);
+      if ("filter" in outCtx) outCtx.filter = "blur(1.6px)";
+      outCtx.globalAlpha = colors.glowAlpha;
+      outCtx.drawImage(glow, 0, 0);
+      outCtx.globalAlpha = 1;
+      if ("filter" in outCtx) outCtx.filter = "none";
     }
 
     function draw(now, live) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (bg) ctx.drawImage(bg, 0, 0);
-      var still = reduceMotion.matches;
+      var still = reducedSeen;
       var s = cell - gap;
       var amp = still ? 0 : 0.22 * live;
       var n = px.length;
@@ -503,6 +567,7 @@
 
     function frame(now) {
       raf = 0;
+      if (reduced()) return; // switched on mid-motion: the handler has drawn the still field
       var dt = last ? Math.min(64, now - last) : 16;
       last = now;
       if (P !== target) {
@@ -553,7 +618,7 @@
     }
 
     window.addEventListener("scroll", function () {
-      if (reduceMotion.matches) return; // already drawn tidy; nothing changes on scroll
+      if (reduced()) return; // already drawn tidy; nothing changes on scroll
       measure();
       idleUntil = performance.now() + DRIFT_MS;
       kick();
@@ -561,9 +626,10 @@
 
     // new colours: repaint the grid and the frame as it is (no new motion)
     onTheme(function () {
+      var still = reduced();
       readColors();
       paintGrid();
-      draw(performance.now(), reduceMotion.matches ? 0 : clamp((idleUntil - performance.now()) / FADE_MS, 0, 1));
+      draw(performance.now(), still ? 0 : clamp((idleUntil - performance.now()) / FADE_MS, 0, 1));
     });
 
     var resizeTimer = 0;
@@ -590,9 +656,9 @@
       }).observe(canvas);
     }
 
-    listen(reduceMotion, function () {
+    onReduced(function (on) {
       stop();
-      if (reduceMotion.matches) { drawStill(); return; }
+      if (on) { drawStill(); return; }
       measure();
       P = target;
       idleUntil = performance.now() + DRIFT_MS;
@@ -619,6 +685,7 @@
     var resetBtn = doc.getElementById("game-reset");
     var scatterBtn = doc.getElementById("game-scatter");
     var setHost = poser(doc.getElementById("game-host"));
+    var hostWave = waveFrames(function (f) { setHost(f ? "wave2" : "wave"); });
     var pieceName = game.getAttribute("data-piece") || "{n}";
     var doneText = game.getAttribute("data-done") || "";
     var total = slots.length;
@@ -693,7 +760,9 @@
 
     function hostPose(pose, ms) {
       window.clearTimeout(hostTimer);
-      setHost(pose);
+      hostWave.stop();
+      if (pose === "wave") hostWave.start();
+      else setHost(pose);
       if (ms) hostTimer = window.setTimeout(function () { setHost(game.classList.contains("is-done") ? "wave" : "idle"); }, ms);
     }
 

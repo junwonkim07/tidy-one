@@ -23,7 +23,7 @@
     "eyebrow": "Coming soon · 2026",
     "headline_1": "Scattered memory,",
     "headline_2": "tidied into one.",
-    "statement": "A private memory index |shared by all |your AI agents",
+    "statement": "A private memory index |shared by all |your AI agents.",
     "cta_primary": "Get notified",
     "cta_secondary": "View on GitHub",
     "scroll_hint": "Scroll to tidy up"
@@ -46,8 +46,8 @@
       "title": "In any format",
       "body": "Documents, photos and videos, plus the cloud apps you work in.",
       "chips": [
-        ["doc", "PDF"], ["doc", "Office"], ["doc", "HWP"], ["photo", "Photos"], ["video", "Videos"],
-        ["note", "Notion"], ["folder", "Google Drive"], ["mail", "Gmail"], ["mic", "Plaud"], ["chat", "Slack"]
+        ["pdf", "PDF"], ["sheet", "Office"], ["hangul", "HWP"], ["photo", "Photos"], ["video", "Videos"],
+        ["workspace", "Notion"], ["folder", "Google Drive"], ["mail", "Gmail"], ["mic", "Plaud"], ["chat", "Slack"]
       ]
     },
     "search": {
@@ -93,8 +93,8 @@
   },
   "works_with": {
     "label": "Works with",
-    "note": "Plus any other client that speaks MCP.",
-    "disclaimer": "tidy-one is an independent open-source project and is not affiliated with any of the services above. Product names and logos belong to their owners."
+    "more": "Any MCP client",
+    "disclaimer": "tidy-one is an independent open-source project and is not affiliated with or endorsed by any of the services above. Product names and logos belong to their owners."
   },
   "status": {
     "label": "Roadmap",
@@ -102,7 +102,7 @@
     "done_label": "Done",
     "next_label": "Next",
     "done": [["devices", "Shared memory across devices"], ["search", "Semantic search"], ["server", "Push-to-deploy server"]],
-    "next": [["doc photo", "Document & photo indexing"], ["video", "Video indexing"], ["cloud", "Cloud sources"], ["window", "Windows indexing agent"]],
+    "next": [["doc", "Document & photo indexing"], ["video", "Video indexing"], ["cloud", "Cloud sources"], ["window", "Windows indexing agent"]],
     "note": "First release in 2026. The order may change."
   },
   "footer": {
@@ -121,6 +121,7 @@
     "done": "All tidy.",
     "reset": "Scatter again",
     "scatter": "Scatter the pixels again",
+    "scatter_short": "Scatter",
     "aria": "A small game: click or tap the scattered pixels to put them back in the grid",
     "piece": "Move pixel {n} to its slot"
   }
